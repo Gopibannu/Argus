@@ -77,5 +77,19 @@
   2. Updated `verifyChain()` SQL query to select `reason`.
   3. Recomputed the Genesis block hash to `a86159f4308d18327bb958ec90c78f2d6dae2118ffc4494b05d2701a8acf8e6a`.
   4. Verified full suite with 29 passing tests, explicitly proving that altering `reason` breaks verification and restoring it re-validates the chain.
-- **File Reference:** [server/src/services/auditService.js](file:///d:/argus/server/src/services/auditService.js), [server/src/db/pool.js](file:///d:/argus/server/src/db/pool.js), and [tests/audit.test.js](file:///d:/argus/tests/audit.test.js)
+
+---
+
+### Entry 7: Anti-IDOR 404 vs 403 Precedence Order in Authorization Choke Point
+- **Date:** 2026-10-20
+- **What was asked:** Build comprehensive authorization isolation test matrix and automated mutation testing harness (`mutationCheck.js`).
+- **What the AI produced:** In `authorize()`, the check for owner-only actions (`if (action === 'delete' || action === 'grant' || action === 'revoke')`) was evaluated before checking if the requesting user even possessed an active grant on the document.
+- **Flaws identified in self-critique:**
+  - An unrelated user or attacker probing `DELETE /api/documents/:id` on a document they had never been granted received `403 Forbidden` instead of `404 Not Found`.
+  - This violated Non-Negotiable #1 (Anti-IDOR / Existence Leak Elimination): an attacker could infer that the confidential document existed simply because the server responded with 403 rather than 404.
+- **Action taken:**
+  1. Reordered the evaluation pipeline in `server/src/services/authzService.js`: the database grant lookup now executes *first*. If no active grant exists for a non-owner, the choke point unconditionally returns `404 Not Found`.
+  2. Only if the user possesses a valid grant (e.g., Dave with `read` or `edit`) does attempting owner-only actions (`delete`, `grant`, `revoke`) return `403 Forbidden`.
+  3. Created `tests/mutationCheck.js` which mutates five core security invariants (default-allow, admin superuser, 403 leak, grantee escalation, hash chain skip) and verified a 100% mutation kill rate.
+- **File Reference:** [server/src/services/authzService.js](file:///d:/argus/server/src/services/authzService.js), [tests/authzMatrix.test.js](file:///d:/argus/tests/authzMatrix.test.js), and [tests/mutationCheck.js](file:///d:/argus/tests/mutationCheck.js)
 

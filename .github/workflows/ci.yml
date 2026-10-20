@@ -33,6 +33,9 @@ jobs:
       - name: Run Security & Auth Test Matrix
         run: npm test
 
+      - name: Run Mutation Testing (Verify Test Suite Kills Vulnerability Injections)
+        run: npm run test:mutation-authz
+
       - name: Verify No Secrets Committed
         run: |
           if [ -f .env ]; then

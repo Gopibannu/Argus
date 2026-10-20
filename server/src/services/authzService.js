@@ -99,25 +99,7 @@ export async function authorize(user, documentId, action, reqContext = {}) {
         return { authorized: true, role: 'owner', document };
     }
 
-    // 5. Actions reserved STRICTLY for the owner (Delete, Grant, Revoke)
-    // Grantees (even with 'edit') and Admins CANNOT manage permissions or delete.
-    if (action === 'delete' || action === 'grant' || action === 'revoke') {
-        await auditService.logEvent({
-            actorId: user.id,
-            actorIp,
-            userAgent,
-            action,
-            documentId,
-            outcome: 'denied',
-            reason: 'OWNER_ONLY_ACTION_ATTEMPTED_BY_NON_OWNER'
-        });
-        // 403 when user knows the document (e.g. grantee trying to grant others)
-        const err = new Error('Permission denied. Only the document owner can manage permissions or delete this document.');
-        err.status = 403;
-        throw err;
-    }
-
-    // 6. Live Grant Lookup (Verifies non-revoked, non-expired grant in PostgreSQL)
+    // 5. Live Grant Lookup (Verifies non-revoked, non-expired grant in PostgreSQL)
     const grantRes = await db.query(`
         SELECT id, document_id, grantee_user_id, granted_by_user_id, permission,
                expires_at, revoked_at
@@ -131,7 +113,8 @@ export async function authorize(user, documentId, action, reqContext = {}) {
 
     const grant = grantRes.rows[0];
 
-    // No active grant found
+    // If user has NO active grant and is not the owner:
+    // ALWAYS return 404 Not Found to prevent existence enumeration / IDOR probing!
     if (!grant) {
         await auditService.logEvent({
             actorId: user.id,
@@ -145,9 +128,25 @@ export async function authorize(user, documentId, action, reqContext = {}) {
                 : 'NO_ACTIVE_GRANT'
         });
 
-        // SECURITY: Uniform 404 Not Found to prevent IDOR existence enumeration
         const err = new Error('Document not found.');
         err.status = 404;
+        throw err;
+    }
+
+    // 6. Actions reserved STRICTLY for the owner (Delete, Grant, Revoke)
+    // Grantees (even with 'edit') CANNOT manage permissions or delete.
+    if (action === 'delete' || action === 'grant' || action === 'revoke') {
+        await auditService.logEvent({
+            actorId: user.id,
+            actorIp,
+            userAgent,
+            action,
+            documentId,
+            outcome: 'denied',
+            reason: 'OWNER_ONLY_ACTION_ATTEMPTED_BY_NON_OWNER'
+        });
+        const err = new Error('Permission denied. Only the document owner can manage permissions or delete this document.');
+        err.status = 403;
         throw err;
     }
 
