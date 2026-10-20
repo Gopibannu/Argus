@@ -29,25 +29,25 @@ export default function AuthCard({
   onVerifyOtp
 }) {
   return (
-    <div className="max-w-md mx-auto">
-      <div className="glass-panel p-8 sm:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+    <div id="auth-card" className="max-w-md mx-auto mb-16 scroll-mt-24">
+      <div className="glass-panel p-8 sm:p-10 border border-white/10 shadow-2xl relative overflow-hidden rounded-3xl">
         
-        {/* Glow decoration */}
-        <div className="absolute -top-16 -right-16 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
+        {/* Ambient Top Glow */}
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-sky-500/15 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Header Icon & Title */}
-        <div className="text-center mb-6">
-          <div className="inline-flex p-3 rounded-2xl bg-sky-500/10 border border-sky-500/20 mb-3 text-sky-400">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/20 mb-3 text-sky-400 shadow-sm">
             {otpStep ? <Mail className="w-6 h-6 text-emerald-400" /> : <Lock className="w-6 h-6 text-sky-400" />}
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl font-extrabold tracking-tight text-white">
             {otpStep 
               ? 'Verify Email Address' 
               : authMode === 'login' 
                 ? 'Sign In to Vault' 
                 : 'Create Argus Account'}
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
             {otpStep 
               ? `Verification code dispatched to ${pendingEmail}`
               : authMode === 'login' 
@@ -56,39 +56,39 @@ export default function AuthCard({
           </p>
         </div>
 
-        {/* Mode Switcher Tabs (Only if not in OTP step) */}
+        {/* Auth Mode Toggle (Only when not in OTP step) */}
         {!otpStep && (
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-950/70 border border-white/10 mb-6 text-xs font-semibold">
+          <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl bg-slate-950/80 border border-white/10 mb-8 text-xs font-semibold">
             <button
               type="button"
               onClick={() => setAuthMode('login')}
-              className={`py-2 rounded-lg transition-all ${
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${
                 authMode === 'login' 
                   ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm' 
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              Log In
+              Sign In
             </button>
             <button
               type="button"
               onClick={() => setAuthMode('signup')}
-              className={`py-2 rounded-lg transition-all ${
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${
                 authMode === 'signup' 
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm' 
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              Sign Up (with OTP)
+              Register (with OTP)
             </button>
           </div>
         )}
 
-        {/* View 1: Login Form */}
+        {/* Mode 1: Login Form */}
         {authMode === 'login' && !otpStep && (
-          <form onSubmit={onLogin} className="space-y-4">
+          <form onSubmit={onLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Work Email</label>
+              <label className="block text-xs font-medium text-slate-300 mb-2">Work Email</label>
               <input
                 type="email"
                 required
@@ -100,7 +100,7 @@ export default function AuthCard({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Master Password</label>
+              <label className="block text-xs font-medium text-slate-300 mb-2">Master Password</label>
               <input
                 type="password"
                 required
@@ -121,11 +121,11 @@ export default function AuthCard({
           </form>
         )}
 
-        {/* View 2: Sign Up Step 1 */}
+        {/* Mode 2: Register Form */}
         {authMode === 'signup' && !otpStep && (
           <form onSubmit={onInitiateRegister} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
               <input
                 type="text"
                 required
@@ -137,7 +137,7 @@ export default function AuthCard({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Work Email</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Work Email</label>
               <input
                 type="email"
                 required
@@ -149,7 +149,7 @@ export default function AuthCard({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password (Min 8 Characters)</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">Password (Min 8 Characters)</label>
               <input
                 type="password"
                 required
@@ -163,7 +163,7 @@ export default function AuthCard({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Platform Role</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Platform Role</label>
                 <select 
                   className="input-field"
                   value={regRole} 
@@ -175,7 +175,7 @@ export default function AuthCard({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Department</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Department</label>
                 <select 
                   className="input-field"
                   value={department} 
@@ -201,21 +201,20 @@ export default function AuthCard({
           </form>
         )}
 
-        {/* View 3: Sign Up Step 2 (OTP Verification) */}
+        {/* Mode 3: OTP Verification */}
         {otpStep && (
-          <div className="space-y-4">
-            {/* Auto-Fill Banner for Demo / Offline Mode */}
+          <div className="space-y-5">
             {demoOtp && (
-              <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-400/30 text-center">
-                <p className="text-[11px] text-slate-400 mb-1 font-semibold">
+              <div className="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-400/30 text-center">
+                <p className="text-[11px] text-slate-400 mb-1.5 font-semibold">
                   🔑 <strong>Test Mode / Console Output Captured:</strong>
                 </p>
                 <div className="flex items-center justify-center gap-2">
-                  <code className="text-lg font-mono font-extrabold text-sky-400 tracking-widest">{demoOtp}</code>
+                  <code className="text-xl font-mono font-extrabold text-sky-400 tracking-widest">{demoOtp}</code>
                   <button
                     type="button"
                     onClick={() => setOtpCode(demoOtp)}
-                    className="text-[11px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 font-semibold cursor-pointer"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 font-semibold cursor-pointer"
                   >
                     Auto-Fill
                   </button>
@@ -223,9 +222,9 @@ export default function AuthCard({
               </div>
             )}
 
-            <form onSubmit={onVerifyOtp} className="space-y-4">
+            <form onSubmit={onVerifyOtp} className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 text-center">
+                <label className="block text-xs font-medium text-slate-300 mb-2 text-center">
                   Enter 6-Digit Numeric Code
                 </label>
                 <input
@@ -233,7 +232,7 @@ export default function AuthCard({
                   required
                   maxLength={6}
                   autoFocus
-                  className="input-field font-mono font-bold text-center text-2xl tracking-[0.5em] text-emerald-400"
+                  className="input-field font-mono font-extrabold text-center text-3xl tracking-[0.4em] text-emerald-400 py-3"
                   placeholder="123456"
                   value={otpCode}
                   onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
@@ -252,7 +251,7 @@ export default function AuthCard({
                 <button
                   type="button"
                   onClick={() => { setOtpStep(false); setOtpCode(''); }}
-                  className="text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                  className="text-slate-400 hover:text-white flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Back to Signup</span>

@@ -513,12 +513,14 @@ export default function App() {
     setEmail(r.email);
     setPassword('Password@Argus2026!');
     setErrorMsg('');
+    const authElem = document.getElementById('auth-card');
+    if (authElem) authElem.scrollIntoView({ behavior: 'smooth' });
   }
 
   return (
-    <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col font-sans selection:bg-sky-500/30 selection:text-sky-200">
       
-      {/* Top Navigation Bar */}
+      {/* 1. Global Sticky Enterprise Navbar at the Top */}
       <Navbar
         currentUser={currentUser}
         health={health}
@@ -527,39 +529,39 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8">
+      {/* 2. Main Container with Generous Spacing */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {/* Global Floating Alerts */}
         {errorMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3 animate-fade-in shadow-lg shadow-rose-950/30">
-            <div className="flex items-center gap-2">
+          <div className="mb-8 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3 shadow-lg shadow-rose-950/30">
+            <div className="flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{errorMsg}</span>
+              <span className="font-medium">{errorMsg}</span>
             </div>
-            <button onClick={() => setErrorMsg('')} className="text-slate-400 hover:text-white text-xs cursor-pointer">Dismiss</button>
+            <button onClick={() => setErrorMsg('')} className="text-slate-400 hover:text-white text-xs cursor-pointer font-semibold">Dismiss</button>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-3 animate-fade-in shadow-lg shadow-emerald-950/30">
-            <div className="flex items-center gap-2">
+          <div className="mb-8 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-3 shadow-lg shadow-emerald-950/30">
+            <div className="flex items-center gap-2.5">
               <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{successMsg}</span>
+              <span className="font-medium">{successMsg}</span>
             </div>
-            <button onClick={() => setSuccessMsg('')} className="text-slate-400 hover:text-white text-xs cursor-pointer">Dismiss</button>
+            <button onClick={() => setSuccessMsg('')} className="text-slate-400 hover:text-white text-xs cursor-pointer font-semibold">Dismiss</button>
           </div>
         )}
 
         {/* Loading State */}
         {loading ? (
-          <div className="text-center py-24 text-slate-400">
+          <div className="text-center py-32 text-slate-400">
             <RefreshCw className="w-8 h-8 mx-auto mb-3 text-sky-400 animate-spin" />
-            <p className="text-sm font-semibold">Verifying secure session in database...</p>
+            <p className="text-sm font-semibold">Verifying secure database session...</p>
           </div>
         ) : !currentUser ? (
           /* Unauthenticated Landing & Auth View */
-          <div>
+          <div className="space-y-12">
             <HeroSection onSelectRole={fillRole} quickRoles={quickRoles} />
             <AuthCard
               authMode={authMode}
@@ -659,18 +661,19 @@ export default function App() {
       />
 
       {/* Production Footer */}
-      <footer className="mt-auto border-t border-white/10 bg-slate-950/80 px-4 lg:px-8 py-8 text-xs text-slate-400">
+      <footer className="mt-auto border-t border-white/[0.08] bg-[#060913]/90 px-4 sm:px-6 lg:px-8 py-8 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-white font-mono">ARGUS</span>
-            <span>• Built for Snovasys Fresher Challenge 2026</span>
+            <span className="font-extrabold text-white font-mono tracking-wider">ARGUS</span>
+            <span className="text-slate-500">•</span>
+            <span>Snovasys Fresher Challenge 2026</span>
           </div>
-          <div className="flex items-center gap-4 text-slate-500 font-mono">
-            <span>Anti-IDOR: Active</span>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-slate-500 font-mono text-[11px]">
+            <span>Anti-IDOR: Enforced</span>
             <span>•</span>
-            <span>Envelope AES-256-GCM: Enforced</span>
+            <span>Envelope AES-256-GCM: Locked</span>
             <span>•</span>
-            <span>SHA-256 Chain: Immutability Locked</span>
+            <span>SHA-256 Hash Chain: Active</span>
           </div>
         </div>
       </footer>
