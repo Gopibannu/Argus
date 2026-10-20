@@ -53,7 +53,7 @@ class InMemoryDatabase {
             reason: 'Argus Security Engine Initialized',
             metadata: { version: '1.0.0', chain: 'genesis' },
             prev_hash: '0'.repeat(64),
-            row_hash: 'a86159f4308d18327bb958ec90c78f2d6dae2118ffc4494b05d2701a8acf8e6a'
+            row_hash: 'c00a0c1262153213e077f32bd087e0c91fac2fec78a628569b1af4d179c4f747'
         };
         this.auditLog.push(genesisRow);
         this.sequenceId = 2;
@@ -549,7 +549,7 @@ class InMemoryDatabase {
 
 const memoryDb = new InMemoryDatabase();
 
-if (config.databaseUrl && !config.databaseUrl.includes('localhost:5432/argus_mock')) {
+if (config.databaseUrl && !config.isTest && !config.databaseUrl.includes('localhost:5432/argus_mock')) {
     pool = new Pool({
         connectionString: config.databaseUrl,
         ssl: config.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },

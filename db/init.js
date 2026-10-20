@@ -85,7 +85,7 @@ async function initDatabase() {
                 'Argus Security Engine Initialized',
                 '{"version": "1.0.0", "chain": "genesis"}'::jsonb,
                 '0000000000000000000000000000000000000000000000000000000000000000',
-                'a86159f4308d18327bb958ec90c78f2d6dae2118ffc4494b05d2701a8acf8e6a'
+                'c00a0c1262153213e077f32bd087e0c91fac2fec78a628569b1af4d179c4f747'
             )
             ON CONFLICT (id) DO NOTHING;
         `);

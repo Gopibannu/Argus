@@ -7,6 +7,14 @@ export const auditService = {
      * Guaranteed deterministic canonical string representation.
      */
     computeRowHash(row, prevHash) {
+        // Deterministic JSON stringification by sorting metadata keys
+        const sortedMetadata = row.metadata && typeof row.metadata === 'object'
+            ? Object.keys(row.metadata).sort().reduce((acc, k) => {
+                acc[k] = row.metadata[k];
+                return acc;
+            }, {})
+            : {};
+
         const canonical = [
             row.sequence_id,
             new Date(row.timestamp).toISOString(),
@@ -16,7 +24,7 @@ export const auditService = {
             row.reason || '',
             row.document_id || 'NONE',
             row.target_user_id || 'NONE',
-            JSON.stringify(row.metadata || {}),
+            JSON.stringify(sortedMetadata),
             prevHash
         ].join('|');
 
