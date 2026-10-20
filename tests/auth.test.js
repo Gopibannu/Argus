@@ -173,4 +173,61 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
         expect(res.status).toBe(409);
         expect(res.body.error).toMatch(/already exists/i);
     });
+
+    it('11. POST /api/auth/initiate-register generates and sends 6-digit OTP', async () => {
+        const email = `otp.user.${Date.now()}@argus.local`;
+        const res = await request(app)
+            .post('/api/auth/initiate-register')
+            .send({
+                email,
+                password: 'OtpSecurePassword123!',
+                fullName: 'OTP Test Subject',
+                role: 'viewer',
+                department: 'Compliance'
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('email', email);
+        expect(res.body).toHaveProperty('demoOtp');
+        expect(res.body.demoOtp).toMatch(/^\d{6}$/);
+    });
+
+    it('12. POST /api/auth/verify-register validates OTP and establishes secure session', async () => {
+        const email = `verified.user.${Date.now()}@argus.local`;
+        // Step 1: Initiate
+        const initRes = await request(app)
+            .post('/api/auth/initiate-register')
+            .send({
+                email,
+                password: 'VerifiedPassword123!',
+                fullName: 'Verified Officer',
+                role: 'owner',
+                department: 'Legal'
+            });
+
+        const otp = initRes.body.demoOtp;
+
+        // Step 2a: Reject incorrect OTP
+        const badOtpRes = await request(app)
+            .post('/api/auth/verify-register')
+            .send({
+                email,
+                otp: '000000'
+            });
+        expect(badOtpRes.status).toBe(400);
+        expect(badOtpRes.body.error).toMatch(/invalid verification code/i);
+
+        // Step 2b: Successful OTP verification
+        const goodOtpRes = await request(app)
+            .post('/api/auth/verify-register')
+            .send({
+                email,
+                otp
+            });
+
+        expect(goodOtpRes.status).toBe(201);
+        expect(goodOtpRes.body.user.email).toBe(email);
+        expect(goodOtpRes.body.user.role).toBe('owner');
+        expect(goodOtpRes.headers['set-cookie']).toBeDefined();
+    });
 });

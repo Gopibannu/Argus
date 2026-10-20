@@ -18,6 +18,7 @@ class InMemoryDatabase {
         this.documents = new Map();
         this.grants = new Map();
         this.downloadTickets = new Map();
+        this.pendingRegistrations = new Map();
         this.auditLog = [];
         this.sequenceId = 1;
         this.initSeedData();
@@ -540,6 +541,38 @@ class InMemoryDatabase {
         // 24. Generic SELECT 1 health check
         if (upper === 'SELECT 1' || upper === 'SELECT 1 AS OK') {
             return { rows: [{ ok: 1 }], rowCount: 1 };
+        }
+
+        // 25. Pending Registrations (OTP verification flow)
+        if (upper.startsWith('INSERT INTO PENDING_REGISTRATIONS')) {
+            const [email, otpHash, fullName, passwordHash, role, department, expiresAt] = params;
+            const record = {
+                email: email.toLowerCase(),
+                otp_hash: otpHash,
+                full_name: fullName,
+                password_hash: passwordHash,
+                role,
+                department,
+                expires_at: expiresAt,
+                created_at: new Date()
+            };
+            this.pendingRegistrations.set(record.email, record);
+            return { rows: [record], rowCount: 1 };
+        }
+
+        if (upper.startsWith('SELECT') && upper.includes('FROM PENDING_REGISTRATIONS') && upper.includes('EMAIL = $1')) {
+            const email = params[0]?.toLowerCase();
+            const record = this.pendingRegistrations.get(email);
+            if (record && new Date(record.expires_at) > new Date()) {
+                return { rows: [record], rowCount: 1 };
+            }
+            return { rows: [], rowCount: 0 };
+        }
+
+        if (upper.startsWith('DELETE FROM PENDING_REGISTRATIONS') && upper.includes('EMAIL = $1')) {
+            const email = params[0]?.toLowerCase();
+            const existed = this.pendingRegistrations.delete(email);
+            return { rows: [], rowCount: existed ? 1 : 0 };
         }
 
         console.warn(`[InMemoryDB] Unhandled query pattern: ${queryText}`);

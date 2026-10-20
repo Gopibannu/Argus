@@ -11,6 +11,11 @@ export const config = {
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'documents',
     geminiApiKey: process.env.GEMINI_API_KEY || '',
+    smtpHost: process.env.SMTP_HOST || '',
+    smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+    smtpUser: process.env.SMTP_USER || '',
+    smtpPass: process.env.SMTP_PASS || '',
+    smtpFrom: process.env.SMTP_FROM || 'Argus Security <no-reply@argus.local>',
     isProduction: process.env.NODE_ENV === 'production',
     isTest: process.env.NODE_ENV === 'test'
 };

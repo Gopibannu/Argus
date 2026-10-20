@@ -3,7 +3,8 @@ import {
   Shield, Lock, Key, CheckCircle, AlertCircle, RefreshCw, UserCheck, 
   LogOut, Terminal, ExternalLink, ShieldAlert, Cpu, UploadCloud, 
   FileText, Download, Users, Trash2, Search, Filter, Clock, Eye, AlertTriangle,
-  Activity, ShieldCheck, Database, ToggleLeft, ToggleRight, Sparkles
+  Activity, ShieldCheck, Database, ToggleLeft, ToggleRight, Sparkles,
+  Mail, Send, ArrowLeft
 } from 'lucide-react';
 
 export default function App() {
@@ -15,13 +16,17 @@ export default function App() {
   const [successMsg, setSuccessMsg] = useState('');
   const [health, setHealth] = useState(null);
 
-  // Auth Form State (Login & Sign Up)
+  // Auth Form State (Login & Sign Up & OTP)
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('Engineering');
   const [regRole, setRegRole] = useState('viewer'); // 'viewer' | 'owner'
+  const [otpStep, setOtpStep] = useState(false); // true when awaiting 6-digit OTP
+  const [otpCode, setOtpCode] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [demoOtp, setDemoOtp] = useState('');
 
   // Documents State
   const [documents, setDocuments] = useState([]);
@@ -224,13 +229,14 @@ export default function App() {
     }
   }
 
-  async function handleRegister(e) {
+  async function handleInitiateRegister(e) {
     if (e) e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/initiate-register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,10 +251,42 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed.');
 
+      setPendingEmail(data.email || email);
+      setDemoOtp(data.demoOtp || '');
+      setOtpStep(true);
+      setSuccessMsg(data.message || 'Verification code sent to your email.');
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleVerifyOtp(e) {
+    if (e) e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    setSubmitting(true);
+
+    try {
+      const res = await fetch('/api/auth/verify-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pendingEmail || email,
+          otp: otpCode.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed.');
+
       setCurrentUser(data.user);
       setCsrfToken(data.csrfToken);
       setPassword('');
-      setSuccessMsg(`Welcome to Argus, ${data.user.fullName}! Account created with role: ${data.user.role}.`);
+      setOtpStep(false);
+      setOtpCode('');
+      setSuccessMsg(`Email verified! Welcome to Argus, ${data.user.fullName}!`);
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
@@ -631,10 +669,90 @@ export default function App() {
                   </button>
                 </form>
               </div>
+            ) : otpStep ? (
+              /* OTP Verification Step */
+              <div>
+                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'inline-flex', padding: '0.75rem', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', marginBottom: '0.75rem' }}>
+                    <Mail size={28} color="#10b981" />
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f1f5f9' }}>
+                    Verify Your Email Address
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    We sent a 6-digit verification code to <span style={{ color: '#38bdf8', fontWeight: 600 }}>{pendingEmail}</span>
+                  </p>
+                </div>
+
+                {/* Instant Fill Banner if in console/fallback mode */}
+                {demoOtp && (
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1.25rem', textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                      🔑 <strong>Active Demo / Console Delivery</strong>
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <code style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '4px', color: '#38bdf8' }}>{demoOtp}</code>
+                      <button
+                        type="button"
+                        onClick={() => setOtpCode(demoOtp)}
+                        style={{ background: 'rgba(56, 189, 248, 0.2)', border: 'none', color: '#38bdf8', fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '0.3rem', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        Auto-Fill
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>
+                      6-Digit Verification Code
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      autoFocus
+                      className="input-field"
+                      placeholder="123456"
+                      value={otpCode}
+                      onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                      style={{ fontSize: '1.4rem', letterSpacing: '8px', textAlign: 'center', fontWeight: 700 }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting || otpCode.length < 6}
+                    className="btn-primary"
+                    style={{ width: '100%', marginTop: '0.25rem', background: 'linear-gradient(135deg, #059669, #10b981)' }}
+                  >
+                    {submitting ? 'Verifying Code...' : 'Confirm Code & Enter Vault'}
+                  </button>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setOtpStep(false); setOtpCode(''); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      <ArrowLeft size={14} /> Back to Sign Up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleInitiateRegister}
+                      disabled={submitting}
+                      style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      Resend Code
+                    </button>
+                  </div>
+                </form>
+              </div>
             ) : (
               /* Sign Up View */
               <div>
-                <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleInitiateRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Full Name</label>
                     <input type="text" required className="input-field" placeholder="Dr. Jane Smith" value={fullName} onChange={e => setFullName(e.target.value)} />
@@ -666,8 +784,9 @@ export default function App() {
                       </select>
                     </div>
                   </div>
-                  <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem', background: 'linear-gradient(135deg, #059669, #10b981)' }}>
-                    {submitting ? 'Creating Secure Account...' : 'Register & Log In'}
+                  <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem', background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <Mail size={16} />
+                    <span>{submitting ? 'Sending Verification Code...' : 'Send Verification OTP'}</span>
                   </button>
                 </form>
               </div>

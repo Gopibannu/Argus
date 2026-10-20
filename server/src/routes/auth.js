@@ -46,7 +46,63 @@ router.post('/login', authLimiter, async (req, res, next) => {
     }
 });
 
-// POST /api/auth/register
+// POST /api/auth/initiate-register (Step 1: Validate & Send OTP)
+router.post('/initiate-register', authLimiter, async (req, res, next) => {
+    const { email, password, fullName, role, department } = req.body || {};
+
+    try {
+        const result = await authService.initiateRegister({
+            email,
+            password,
+            fullName,
+            role,
+            department
+        });
+
+        res.json({
+            message: result.message,
+            email: result.email,
+            mode: result.mode,
+            demoOtp: result.demoOtp
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /api/auth/verify-register (Step 2: Verify OTP & Establish Session)
+router.post('/verify-register', authLimiter, async (req, res, next) => {
+    const { email, otp } = req.body || {};
+
+    try {
+        const clientIp = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+
+        const { user, rawToken, csrfToken, expiresAt } = await authService.verifyOtpAndRegister(
+            { email, otp },
+            clientIp,
+            userAgent
+        );
+
+        res.cookie(COOKIE_NAME, rawToken, {
+            httpOnly: true,
+            secure: config.isProduction,
+            sameSite: 'strict',
+            path: '/',
+            expires: expiresAt
+        });
+
+        res.status(201).json({
+            message: 'Email verified successfully. Welcome to Argus.',
+            user,
+            csrfToken
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// POST /api/auth/register (Direct registration fallback)
 router.post('/register', authLimiter, async (req, res, next) => {
     const { email, password, fullName, role, department } = req.body || {};
 
