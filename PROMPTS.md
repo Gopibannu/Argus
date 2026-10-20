@@ -61,5 +61,21 @@
   - The search query `SELECT DISTINCT ... WHERE d.deleted_at IS NULL AND (d.owner_id = $1 OR ...)` was mistakenly intercepted by the single document lookup handler because `d.owner_id = $1` ended with `ID = $1`.
   - As a result, search queries returned 0 results instead of evaluating the permission join.
 - **Action taken:** Tightened the single-document condition to explicitly require `WHERE ID = $1` and moved the `SELECT DISTINCT` search handler ahead in priority.
-- **File Reference:** [server/src/db/pool.js](file:///d:/argus/server/src/db/pool.js) (Line 218) & [tests/documents.test.js](file:///d:/argus/tests/documents.test.js)
+
+---
+
+### Entry 6: Canonical String Serialization Discrepancy in Audit Hash Chain
+- **Date:** 2026-10-20
+- **What was asked:** Build tamper-evident SHA-256 audit log hash chain with database verification and historical tamper detection.
+- **What the AI produced:** Initial `computeRowHash()` serialized 10 canonical fields including `row.reason`, but during `logEvent()`, the candidate object omitted `reason`, and `verifyChain()` did not request `reason` in its `SELECT` query.
+- **Flaws identified in self-critique:**
+  - Initial tests failed with `Data tampering detected at sequence 1: contents do not match cryptographic hash.`
+  - The Genesis block row hash computed without `reason` differed from the stored row hash (`6a8856...` vs `a86159...`).
+  - Furthermore, if `reason` was not included in `verifyChain()`, historical row modifications to `reason` would not be flagged by hash recomputation.
+- **Action taken:** 
+  1. Updated `computeRowHash()` canonical string to strictly serialize all non-repudiation fields: `sequence_id|timestamp|actor_id|action|outcome|reason|document_id|target_user_id|JSON.stringify(metadata)|prev_hash`.
+  2. Updated `verifyChain()` SQL query to select `reason`.
+  3. Recomputed the Genesis block hash to `a86159f4308d18327bb958ec90c78f2d6dae2118ffc4494b05d2701a8acf8e6a`.
+  4. Verified full suite with 29 passing tests, explicitly proving that altering `reason` breaks verification and restoring it re-validates the chain.
+- **File Reference:** [server/src/services/auditService.js](file:///d:/argus/server/src/services/auditService.js), [server/src/db/pool.js](file:///d:/argus/server/src/db/pool.js), and [tests/audit.test.js](file:///d:/argus/tests/audit.test.js)
 

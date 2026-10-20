@@ -10,6 +10,7 @@ import { apiLimiter } from './middleware/rateLimiter.js';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import documentsRouter from './routes/documents.js';
+import adminRouter from './routes/admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,7 @@ export function createApp() {
     app.use('/api', healthRouter);
     app.use('/api/auth', authRouter);
     app.use('/api/documents', documentsRouter);
+    app.use('/api/admin', adminRouter);
 
     // 7. Serve pre-built React frontend (Same-Origin deployment)
     const clientDistPath = path.resolve(__dirname, '../../client/dist');

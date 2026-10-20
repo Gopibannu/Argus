@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Shield, Lock, Key, CheckCircle, AlertCircle, RefreshCw, UserCheck, 
   LogOut, Terminal, ExternalLink, ShieldAlert, Cpu, UploadCloud, 
-  FileText, Download, Users, Trash2, Search, Filter, Clock, Eye, AlertTriangle 
+  FileText, Download, Users, Trash2, Search, Filter, Clock, Eye, AlertTriangle,
+  Activity, ShieldCheck, Database, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
 export default function App() {
@@ -37,6 +38,19 @@ export default function App() {
   // Ticket State
   const [activeTicket, setActiveTicket] = useState(null);
 
+  // Active Navigation Tab
+  const [activeTab, setActiveTab] = useState('documents'); // 'documents' | 'admin'
+
+  // Admin Dashboard State
+  const [adminMetrics, setAdminMetrics] = useState(null);
+  const [auditChainStatus, setAuditChainStatus] = useState(null);
+  const [verifyingChain, setVerifyingChain] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditOutcomeFilter, setAuditOutcomeFilter] = useState('');
+  const [auditActionFilter, setAuditActionFilter] = useState('');
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [loadingAdminData, setLoadingAdminData] = useState(false);
+
   useEffect(() => {
     fetchSession();
     fetchHealth();
@@ -46,9 +60,13 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
-      fetchDocuments();
+      if (activeTab === 'documents') {
+        fetchDocuments();
+      } else if (activeTab === 'admin' && currentUser.role === 'admin') {
+        fetchAdminDashboardData();
+      }
     }
-  }, [currentUser, searchQuery, selectedCategory]);
+  }, [currentUser, searchQuery, selectedCategory, activeTab, auditOutcomeFilter, auditActionFilter]);
 
   async function fetchHealth() {
     try {
@@ -96,6 +114,82 @@ export default function App() {
       }
     } catch (err) {
       console.error('Fetch documents error:', err);
+    }
+  }
+
+  async function fetchAdminDashboardData() {
+    setLoadingAdminData(true);
+    try {
+      // 1. Fetch metrics
+      const metricsRes = await fetch('/api/admin/metrics');
+      if (metricsRes.ok) {
+        const m = await metricsRes.json();
+        setAdminMetrics(m);
+      }
+
+      // 2. Fetch audit trail with active filters
+      const auditParams = new URLSearchParams();
+      auditParams.append('limit', '50');
+      if (auditOutcomeFilter) auditParams.append('outcome', auditOutcomeFilter);
+      if (auditActionFilter) auditParams.append('action', auditActionFilter);
+
+      const auditRes = await fetch(`/api/admin/audit?${auditParams.toString()}`);
+      if (auditRes.ok) {
+        const a = await auditRes.json();
+        setAuditLogs(a.auditTrail || []);
+      }
+
+      // 3. Fetch user accounts
+      const usersRes = await fetch('/api/admin/users');
+      if (usersRes.ok) {
+        const u = await usersRes.json();
+        setAdminUsers(u.users || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin data:', err);
+    } finally {
+      setLoadingAdminData(false);
+    }
+  }
+
+  async function verifyAuditChain() {
+    setVerifyingChain(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/audit/verify');
+      const data = await res.json();
+      setAuditChainStatus(data);
+      if (data.valid) {
+        setSuccessMsg(`Cryptographic Hash Chain Verified: All ${data.totalRowsVerified} historical entries match sequential SHA-256 links.`);
+      } else {
+        setErrorMsg(`TAMPER DETECTED: ${data.error || 'Audit chain integrity compromised!'}`);
+      }
+    } catch (err) {
+      setErrorMsg(`Audit verification failed: ${err.message}`);
+    } finally {
+      setVerifyingChain(false);
+    }
+  }
+
+  async function toggleUserStatus(userId, currentStatus, userName) {
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/toggle-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to toggle account status.');
+
+      setSuccessMsg(`User "${userName}" ${data.isActive ? 'activated' : 'deactivated (all active sessions terminated immediately)'}.`);
+      fetchAdminDashboardData();
+    } catch (err) {
+      setErrorMsg(err.message);
     }
   }
 
@@ -436,8 +530,69 @@ export default function App() {
       ) : (
         /* Authenticated Workspace */
         <div>
-          {/* Top Control Bar: Upload & Security Inspector */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+          {/* Navigation Bar / Role Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => setActiveTab('documents')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'documents' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                  color: activeTab === 'documents' ? '#38bdf8' : 'var(--text-muted)',
+                  borderBottom: activeTab === 'documents' ? '2px solid #38bdf8' : '2px solid transparent',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <FileText size={16} />
+                <span>Documents & Access</span>
+              </button>
+
+              {currentUser.role === 'admin' && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: activeTab === 'admin' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                    color: activeTab === 'admin' ? '#34d399' : 'var(--text-muted)',
+                    borderBottom: activeTab === 'admin' ? '2px solid #10b981' : '2px solid transparent',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <ShieldCheck size={16} />
+                  <span>Admin Security Center</span>
+                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontWeight: 700 }}>
+                    VERIFY CHAIN
+                  </span>
+                </button>
+              )}
+            </div>
+
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+              Session ID: <code className="font-mono">{currentUser.id.slice(0, 8)}...</code> | Strict RBAC
+            </div>
+          </div>
+
+          {activeTab === 'documents' ? (
+            /* Documents Workspace View */
+            <div>
+              {/* Top Control Bar: Upload & Security Inspector */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             {/* Upload Zone (For Owners) */}
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -687,6 +842,255 @@ export default function App() {
                 >
                   Test Ticket
                 </a>
+              </div>
+            </div>
+          )}
+
+            </div>
+          ) : (
+            /* Admin Security Center View (Alice Admin Only) */
+            <div>
+              {/* Verification & Metrics Top Bar */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                {/* 1. Live Hash Chain Integrity Card */}
+                <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: auditChainStatus?.valid === false ? '4px solid #f43f5e' : '4px solid #10b981' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>
+                        Audit Chain Integrity
+                      </div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: '0.25rem', color: auditChainStatus?.valid === false ? '#f43f5e' : '#34d399' }}>
+                        {auditChainStatus ? (auditChainStatus.valid ? 'VALID & INTACT' : 'COMPROMISED') : (adminMetrics?.chainIntegrity || 'VERIFIED')}
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', borderRadius: '0.5rem', background: auditChainStatus?.valid === false ? 'rgba(244, 63, 94, 0.15)' : 'rgba(16, 185, 129, 0.15)' }}>
+                      <ShieldCheck size={24} color={auditChainStatus?.valid === false ? '#f43f5e' : '#10b981'} />
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                    O(N) sequential SHA-256 hash verification linking each row to its predecessor back to Genesis block.
+                  </p>
+
+                  <button
+                    onClick={verifyAuditChain}
+                    disabled={verifyingChain}
+                    className="btn-primary"
+                    style={{ width: '100%', fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                  >
+                    {verifyingChain ? 'Recalculating SHA-256 Hashes...' : 'Verify Audit Chain Now'}
+                  </button>
+                </div>
+
+                {/* 2. Total Events & Denied Attempts Card */}
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>
+                        Audit Security Counters
+                      </div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: '0.25rem', color: 'var(--text-main)' }}>
+                        {adminMetrics?.totalEvents ?? 0} Events Recorded
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(56, 189, 248, 0.15)' }}>
+                      <Activity size={24} color="#38bdf8" />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem' }}>
+                    <div style={{ padding: '0.4rem 0.6rem', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.1)', color: '#fda4af' }}>
+                      <strong>{adminMetrics?.deniedEvents ?? 0}</strong> Denied (403/404)
+                    </div>
+                    <div style={{ padding: '0.4rem 0.6rem', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.1)', color: '#fcd34d' }}>
+                      <strong>{adminMetrics?.permissionChanges ?? 0}</strong> Grants/Revokes
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Database Security Trigger Status */}
+                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>
+                        PostgreSQL Immutability
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.25rem', color: '#10b981' }}>
+                        ACTIVE TRIGGER
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(16, 185, 129, 0.15)' }}>
+                      <Database size={24} color="#10b981" />
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <code className="font-mono">trg_protect_audit_log</code> rejects any <code className="font-mono">UPDATE</code>, <code className="font-mono">DELETE</code>, or <code className="font-mono">TRUNCATE</code>, even by database superusers.
+                  </p>
+                </div>
+              </div>
+
+              {/* User Accounts Management & Instant Session Death */}
+              <div className="glass-panel" style={{ marginBottom: '2rem', overflow: 'hidden' }}>
+                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>User Accounts & Immediate Lockout</h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                      Deactivating a user instantly terminates all active database sessions across all devices.
+                    </p>
+                  </div>
+                  <button onClick={fetchAdminDashboardData} className="role-pill" style={{ padding: '0.35rem 0.75rem' }}>
+                    <RefreshCw size={14} style={{ marginRight: '0.25rem' }} /> Refresh
+                  </button>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-dim)' }}>
+                        <th style={{ padding: '0.75rem 1.25rem' }}>User / Department</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Email</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Role</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                        <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Lockout Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminUsers.map(u => (
+                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '0.85rem 1.25rem' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{u.fullName}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{u.department}</div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>{u.email}</td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <span style={{
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: u.isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                              color: u.isActive ? '#34d399' : '#fda4af'
+                            }}>
+                              {u.isActive ? 'ACTIVE' : 'DEACTIVATED'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                            {u.id !== currentUser.id && (
+                              <button
+                                onClick={() => toggleUserStatus(u.id, u.isActive, u.fullName)}
+                                className={u.isActive ? 'btn-danger' : 'btn-primary'}
+                                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                              >
+                                {u.isActive ? 'Deactivate (Kill Sessions)' : 'Activate User'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Cryptographic Audit Trail Stream */}
+              <div className="glass-panel" style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Tamper-Evident Audit Trail Stream</h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                      Every event recorded with sequential <code className="font-mono">prev_hash</code> and <code className="font-mono">row_hash</code>
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select
+                      className="input-field"
+                      value={auditOutcomeFilter}
+                      onChange={e => setAuditOutcomeFilter(e.target.value)}
+                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', minWidth: '130px' }}
+                    >
+                      <option value="">All Outcomes</option>
+                      <option value="allowed">Allowed Only</option>
+                      <option value="denied">Denied Only</option>
+                    </select>
+
+                    <select
+                      className="input-field"
+                      value={auditActionFilter}
+                      onChange={e => setAuditActionFilter(e.target.value)}
+                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', minWidth: '130px' }}
+                    >
+                      <option value="">All Actions</option>
+                      <option value="login">Logins</option>
+                      <option value="download">Downloads</option>
+                      <option value="upload">Uploads</option>
+                      <option value="grant">Grants</option>
+                      <option value="revoke">Revocations</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-dim)' }}>
+                        <th style={{ padding: '0.75rem 1rem' }}>Seq #</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Timestamp</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Actor</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Action</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Outcome</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Reason / Target</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Row Hash</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map(log => (
+                        <tr key={log.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '0.75rem 1rem', fontFamily: 'JetBrains Mono', color: 'var(--text-dim)' }}>
+                            #{log.sequenceId}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <div style={{ fontWeight: 600 }}>{log.actor.name}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{log.actor.ip}</div>
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <span style={{ padding: '0.15rem 0.4rem', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600 }}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <span style={{
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              background: log.outcome === 'allowed' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                              color: log.outcome === 'allowed' ? '#34d399' : '#fda4af'
+                            }}>
+                              {log.outcome}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
+                            {log.reason || (log.document?.title ? `Doc: ${log.document.title}` : log.targetUser?.name ? `User: ${log.targetUser.name}` : '-')}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', fontFamily: 'JetBrains Mono', fontSize: '0.7rem', color: '#38bdf8' }}>
+                            {log.rowHash ? `${log.rowHash.slice(0, 12)}...` : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

@@ -39,7 +39,7 @@ class InMemoryDatabase {
         }
 
         // Genesis row for audit
-        this.auditLog.push({
+        const genesisRow = {
             sequence_id: 1,
             id: '00000000-0000-0000-0000-000000000001',
             timestamp: new Date('2026-10-19T00:00:00Z'),
@@ -53,8 +53,9 @@ class InMemoryDatabase {
             reason: 'Argus Security Engine Initialized',
             metadata: { version: '1.0.0', chain: 'genesis' },
             prev_hash: '0'.repeat(64),
-            row_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-        });
+            row_hash: 'a86159f4308d18327bb958ec90c78f2d6dae2118ffc4494b05d2701a8acf8e6a'
+        };
+        this.auditLog.push(genesisRow);
         this.sequenceId = 2;
     }
 
@@ -65,6 +66,24 @@ class InMemoryDatabase {
         // 1. Transaction statements
         if (upper === 'BEGIN' || upper === 'COMMIT' || upper === 'ROLLBACK') {
             return { rows: [], rowCount: 0 };
+        }
+
+        // 1b. Update user (e.g. toggle is_active status)
+        if (upper.startsWith('UPDATE USERS') && upper.includes('IS_ACTIVE = $1')) {
+            const [isActive, userId] = params;
+            const user = this.users.get(userId);
+            if (user) {
+                user.is_active = isActive;
+                user.updated_at = new Date();
+                return { rows: [user], rowCount: 1 };
+            }
+            return { rows: [], rowCount: 0 };
+        }
+
+        // 1c. Select all users (for admin users list)
+        if (upper.startsWith('SELECT') && upper.includes('FROM USERS') && upper.includes('ORDER BY CREATED_AT ASC')) {
+            const list = Array.from(this.users.values()).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            return { rows: list, rowCount: list.length };
         }
 
         // 2. Select user by email
@@ -147,10 +166,52 @@ class InMemoryDatabase {
         }
 
         // 8. Select latest audit row
-        if (upper.includes('FROM AUDIT_LOG') && upper.includes('ORDER BY SEQUENCE_ID DESC')) {
+        if (upper.includes('FROM AUDIT_LOG') && upper.includes('ORDER BY SEQUENCE_ID DESC') && upper.includes('LIMIT 1')) {
             if (this.auditLog.length === 0) return { rows: [], rowCount: 0 };
             const latest = this.auditLog[this.auditLog.length - 1];
             return { rows: [latest], rowCount: 1 };
+        }
+
+        // 8b. Select all audit rows for chain verification (ORDER BY sequence_id ASC)
+        if (upper.includes('FROM AUDIT_LOG') && upper.includes('ORDER BY SEQUENCE_ID ASC')) {
+            const sorted = [...this.auditLog].sort((a, b) => a.sequence_id - b.sequence_id);
+            return { rows: sorted, rowCount: sorted.length };
+        }
+
+        // 8c. Aggregated audit metrics
+        if (upper.includes('SELECT') && upper.includes('COUNT(*) AS TOTAL_EVENTS') && upper.includes('FROM AUDIT_LOG')) {
+            const total = this.auditLog.length;
+            const denied = this.auditLog.filter(e => e.outcome === 'denied').length;
+            const permChanges = this.auditLog.filter(e => e.action === 'grant' || e.action === 'revoke').length;
+            const uniqueActors = new Set(this.auditLog.map(e => e.actor_id).filter(Boolean)).size;
+            return {
+                rows: [{
+                    total_events: total,
+                    denied_events: denied,
+                    permission_changes: permChanges,
+                    active_actors: uniqueActors
+                }],
+                rowCount: 1
+            };
+        }
+
+        // 8d. Audit Trail search & filter list (ORDER BY sequence_id DESC)
+        if (upper.includes('FROM AUDIT_LOG A') && upper.includes('ORDER BY A.SEQUENCE_ID DESC')) {
+            const sorted = [...this.auditLog].sort((a, b) => b.sequence_id - a.sequence_id);
+            const enriched = sorted.map(row => {
+                const actor = this.users.get(row.actor_id);
+                const target = this.users.get(row.target_user_id);
+                const doc = this.documents.get(row.document_id);
+                return {
+                    ...row,
+                    actor_name: actor ? actor.full_name : 'System / Anonymous',
+                    actor_email: actor ? actor.email : 'N/A',
+                    target_name: target ? target.full_name : null,
+                    target_email: target ? target.email : null,
+                    document_title: doc ? doc.title : null
+                };
+            });
+            return { rows: enriched, rowCount: enriched.length };
         }
 
         // 9. Insert into audit_log
