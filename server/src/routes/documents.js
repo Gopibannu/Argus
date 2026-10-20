@@ -9,6 +9,7 @@ import { storageService } from '../services/storageService.js';
 import { auditService } from '../services/auditService.js';
 import { authorize } from '../services/authzService.js';
 import { hashToken } from '../middleware/session.js';
+import { aiService } from '../services/aiService.js';
 
 const router = Router();
 const upload = multer({
@@ -107,12 +108,45 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res, next
 // ============================================================================
 router.get('/', requireAuth, async (req, res, next) => {
     try {
-        const { q, category } = req.query;
+        const { q, category, owner, startDate, endDate } = req.query;
         const searchPattern = q ? `%${q.trim()}%` : null;
         const categoryFilter = category ? category.trim() : null;
+        const ownerFilter = owner ? `%${owner.trim()}%` : null;
+        const startFilter = startDate ? new Date(startDate).toISOString() : null;
+        const endFilter = endDate ? new Date(endDate).toISOString() : null;
 
         // SECURITY: Search filtering directly inside the SQL join.
         // Returns ONLY documents the caller owns or is actively granted.
+        const queryParams = [req.user.id];
+        let paramIdx = 2;
+
+        let dynamicWhere = '';
+        if (searchPattern) {
+            dynamicWhere += ` AND (d.title ILIKE $${paramIdx} OR d.original_filename ILIKE $${paramIdx})`;
+            queryParams.push(searchPattern);
+            paramIdx++;
+        }
+        if (categoryFilter) {
+            dynamicWhere += ` AND d.category = $${paramIdx}`;
+            queryParams.push(categoryFilter);
+            paramIdx++;
+        }
+        if (ownerFilter) {
+            dynamicWhere += ` AND (u.full_name ILIKE $${paramIdx} OR u.email ILIKE $${paramIdx})`;
+            queryParams.push(ownerFilter);
+            paramIdx++;
+        }
+        if (startFilter) {
+            dynamicWhere += ` AND d.created_at >= $${paramIdx}`;
+            queryParams.push(startFilter);
+            paramIdx++;
+        }
+        if (endFilter) {
+            dynamicWhere += ` AND d.created_at <= $${paramIdx}`;
+            queryParams.push(endFilter);
+            paramIdx++;
+        }
+
         const queryText = `
             SELECT DISTINCT 
                 d.id, d.owner_id, d.title, d.original_filename, d.mime_type,
@@ -130,14 +164,9 @@ router.get('/', requireAuth, async (req, res, next) => {
                 AND (g.expires_at IS NULL OR g.expires_at > NOW())
             WHERE d.deleted_at IS NULL
               AND (d.owner_id = $1 OR g.id IS NOT NULL)
-              ${searchPattern ? 'AND (d.title ILIKE $2 OR d.original_filename ILIKE $2)' : ''}
-              ${categoryFilter ? `AND d.category = ${searchPattern ? '$3' : '$2'}` : ''}
+              ${dynamicWhere}
             ORDER BY d.created_at DESC;
         `;
-
-        const queryParams = [req.user.id];
-        if (searchPattern) queryParams.push(searchPattern);
-        if (categoryFilter) queryParams.push(categoryFilter);
 
         const result = await db.query(queryText, queryParams);
 
@@ -526,6 +555,22 @@ router.post('/:id/grants/:grantId/revoke', requireAuth, async (req, res, next) =
         });
 
         res.json({ message: 'Grant revoked immediately. Access has been terminated.' });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// ============================================================================
+// 12. POST /api/documents/:id/ai-suggest (AI Access Recommendations, Owner Only)
+// ============================================================================
+router.post('/:id/ai-suggest', requireAuth, async (req, res, next) => {
+    try {
+        // Must be authorized as owner to request recipient suggestions
+        const { document } = await authorize(req.user, req.params.id, 'grant', getReqContext(req));
+
+        const result = await aiService.suggestRecipients(document, req.user, getReqContext(req));
+
+        res.json(result);
     } catch (err) {
         next(err);
     }

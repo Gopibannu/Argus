@@ -86,6 +86,15 @@ class InMemoryDatabase {
             return { rows: list, rowCount: list.length };
         }
 
+        // 1d. Select active users excluding requesting user (for AI suggestions)
+        if (upper.includes('FROM USERS') && upper.includes('IS_ACTIVE = TRUE') && upper.includes('ID != $1')) {
+            const excludeId = params[0];
+            const list = Array.from(this.users.values())
+                .filter(u => u.is_active && u.id !== excludeId)
+                .sort((a, b) => a.department.localeCompare(b.department));
+            return { rows: list, rowCount: list.length };
+        }
+
         // 2. Select user by email
         if (upper.includes('FROM USERS') && upper.includes('EMAIL = $1')) {
             const email = params[0]?.toLowerCase();
@@ -181,6 +190,14 @@ class InMemoryDatabase {
                 }
             }
             return { rows: [], rowCount: deleted };
+        }
+
+        // 8a. Select audit rows by action and document_id
+        if (upper.includes('FROM AUDIT_LOG') && upper.includes('WHERE ACTION =') && upper.includes('DOCUMENT_ID = $1')) {
+            const docId = params[0];
+            const filtered = this.auditLog.filter(e => e.action === 'ai_suggestion_generated' && e.document_id === docId);
+            const sorted = [...filtered].sort((a, b) => b.sequence_id - a.sequence_id);
+            return { rows: sorted, rowCount: sorted.length };
         }
 
         // 8. Select latest audit row
@@ -332,8 +349,8 @@ class InMemoryDatabase {
         // 15. Documents: Search & list query with SQL filtering
         if (upper.startsWith('SELECT DISTINCT') && upper.includes('FROM DOCUMENTS D')) {
             const userId = params[0];
-            const searchPattern = params[1] ? params[1].replace(/%/g, '').toLowerCase() : null;
-            const categoryFilter = params[2] || (params[1] && !searchPattern ? params[1] : null);
+            const searchPattern = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'))?.replace(/%/g, '').toLowerCase();
+            const categoryFilter = params.find(p => ['engineering', 'finance', 'legal', 'compliance', 'general'].includes(String(p).toLowerCase()));
 
             const results = [];
             for (const doc of this.documents.values()) {
@@ -346,8 +363,6 @@ class InMemoryDatabase {
                     g.revoked_at === null && 
                     (!g.expires_at || new Date(g.expires_at) > new Date())
                 );
-                // DEBUG:
-                // console.log('IN POOL.JS: doc.id=', doc.id, 'userId=', userId, 'isOwner=', isOwner, 'activeGrant=', activeGrant);
 
                 if (!isOwner && !activeGrant) continue;
 
@@ -411,6 +426,17 @@ class InMemoryDatabase {
                 (!g.expires_at || new Date(g.expires_at) > new Date())
             );
             return { rows: grant ? [{ ...grant }] : [], rowCount: grant ? 1 : 0 };
+        }
+
+        // 17b. Grants: SELECT grantee_user_id FROM grants WHERE document_id = $1 (active, for AI service)
+        if (upper.startsWith('SELECT') && upper.includes('GRANTEE_USER_ID') && upper.includes('FROM GRANTS') && upper.includes('DOCUMENT_ID = $1')) {
+            const docId = params[0];
+            const activeGrants = Array.from(this.grants.values()).filter(g =>
+                g.document_id === docId &&
+                g.revoked_at === null &&
+                (!g.expires_at || new Date(g.expires_at) > new Date())
+            );
+            return { rows: activeGrants.map(g => ({ grantee_user_id: g.grantee_user_id })), rowCount: activeGrants.length };
         }
 
         // 18. Grants: SELECT by id and document_id

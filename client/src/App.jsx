@@ -3,7 +3,7 @@ import {
   Shield, Lock, Key, CheckCircle, AlertCircle, RefreshCw, UserCheck, 
   LogOut, Terminal, ExternalLink, ShieldAlert, Cpu, UploadCloud, 
   FileText, Download, Users, Trash2, Search, Filter, Clock, Eye, AlertTriangle,
-  Activity, ShieldCheck, Database, ToggleLeft, ToggleRight
+  Activity, ShieldCheck, Database, ToggleLeft, ToggleRight, Sparkles
 } from 'lucide-react';
 
 export default function App() {
@@ -32,12 +32,14 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // Grants Modal State
+  // Grants Modal & AI Suggestions State
   const [selectedDocForGrants, setSelectedDocForGrants] = useState(null);
   const [docGrants, setDocGrants] = useState([]);
   const [grantEmail, setGrantEmail] = useState('');
   const [grantPermission, setGrantPermission] = useState('read');
   const [granting, setGranting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   // Ticket State
   const [activeTicket, setActiveTicket] = useState(null);
@@ -365,6 +367,7 @@ export default function App() {
     setSelectedDocForGrants(doc);
     setErrorMsg('');
     setSuccessMsg('');
+    setAiSuggestions(null);
     try {
       const res = await fetch(`/api/documents/${doc.id}/grants`);
       if (res.ok) {
@@ -373,6 +376,27 @@ export default function App() {
       }
     } catch (err) {
       console.error('Grants fetch error:', err);
+    }
+  }
+
+  async function fetchAiSuggestions(docId) {
+    setLoadingAi(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(`/api/documents/${docId}/ai-suggest`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch AI suggestions.');
+      setAiSuggestions(data);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoadingAi(false);
     }
   }
 
@@ -1228,6 +1252,62 @@ export default function App() {
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{selectedDocForGrants.title}</p>
                   </div>
                   <button onClick={() => setSelectedDocForGrants(null)} className="role-pill" style={{ padding: '0.25rem 0.6rem' }}>✕ Close</button>
+                </div>
+
+                {/* AI Access Assistant Section (Gemini 1.5 Flash / Human-in-the-loop) */}
+                <div style={{ marginBottom: '1.5rem', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: '0.75rem', padding: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Sparkles size={18} color="#818cf8" />
+                      <strong style={{ fontSize: '0.9rem', color: '#c7d2fe' }}>Gemini AI Access Assistant</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fetchAiSuggestions(selectedDocForGrants.id)}
+                      disabled={loadingAi}
+                      className="btn-primary"
+                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)' }}
+                    >
+                      {loadingAi ? 'Consulting Gemini...' : 'Suggest Recipients (AI)'}
+                    </button>
+                  </div>
+
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>
+                    Recommends vetted recipients based on document category and organization roles. <em>AI suggestions are purely advisory—a human owner must confirm every grant. Both suggestion and decision are written to the audit chain.</em>
+                  </p>
+
+                  {aiSuggestions && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#818cf8', fontWeight: 600 }}>
+                        Engine: {aiSuggestions.model}
+                      </div>
+                      {aiSuggestions.suggestions.length === 0 ? (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{aiSuggestions.disclaimer}</p>
+                      ) : (
+                        aiSuggestions.suggestions.map(s => (
+                          <div key={s.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 0, 0, 0.3)', padding: '0.5rem 0.75rem', borderRadius: '0.4rem', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                            <div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{s.fullName} ({s.email})</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                                {s.department} • Recommended: <span style={{ textTransform: 'uppercase', color: '#38bdf8' }}>{s.permission}</span> • <em>{s.reason}</em>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGrantEmail(s.email);
+                                setGrantPermission(s.permission);
+                              }}
+                              className="role-pill"
+                              style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', color: '#818cf8', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+                            >
+                              Apply to Form
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Grant New Person Form */}
