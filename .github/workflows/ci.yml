@@ -1,0 +1,41 @@
+name: Argus Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-and-tests:
+    name: Build & Security Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 20.x, 22.x ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build React Client (Same-Origin Assets)
+        run: npm run build
+
+      - name: Run Security & Auth Test Matrix
+        run: npm test
+
+      - name: Verify No Secrets Committed
+        run: |
+          if [ -f .env ]; then
+            echo "ERROR: .env file found in repository!"
+            exit 1
+          fi
