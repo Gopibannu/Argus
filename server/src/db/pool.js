@@ -93,6 +93,24 @@ class InMemoryDatabase {
             return { rows: user ? [user] : [], rowCount: user ? 1 : 0 };
         }
 
+        // 2b. Insert user
+        if (upper.startsWith('INSERT INTO USERS')) {
+            const [id, email, passwordHash, fullName, role, department, isActive] = params;
+            const newUser = {
+                id: id || crypto.randomUUID(),
+                email: email.toLowerCase(),
+                password_hash: passwordHash,
+                full_name: fullName,
+                role: role || 'viewer',
+                department: department || 'General',
+                is_active: isActive !== undefined ? Boolean(isActive) : true,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+            this.users.set(newUser.id, newUser);
+            return { rows: [newUser], rowCount: 1 };
+        }
+
         // 3. Select user by id
         if (upper.includes('FROM USERS') && upper.includes('ID = $1')) {
             const id = params[0];

@@ -46,6 +46,38 @@ router.post('/login', authLimiter, async (req, res, next) => {
     }
 });
 
+// POST /api/auth/register
+router.post('/register', authLimiter, async (req, res, next) => {
+    const { email, password, fullName, role, department } = req.body || {};
+
+    try {
+        const clientIp = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+
+        const { user, rawToken, csrfToken, expiresAt } = await authService.register(
+            { email, password, fullName, role, department },
+            clientIp,
+            userAgent
+        );
+
+        res.cookie(COOKIE_NAME, rawToken, {
+            httpOnly: true,
+            secure: config.isProduction,
+            sameSite: 'strict',
+            path: '/',
+            expires: expiresAt
+        });
+
+        res.status(201).json({
+            message: 'Registration successful. Session established.',
+            user,
+            csrfToken
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
 // POST /api/auth/logout
 router.post('/logout', requireAuth, async (req, res, next) => {
     try {

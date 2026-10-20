@@ -65,6 +65,77 @@ export const authService = {
         };
     },
 
+    async register({ email, password, fullName, role = 'viewer', department = 'General' }, ipAddress = '127.0.0.1', userAgent = 'Unknown') {
+        const cleanEmail = (email || '').trim().toLowerCase();
+        const cleanName = (fullName || '').trim();
+        const cleanDept = (department || 'General').trim();
+
+        if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+            const err = new Error('A valid email address is required.');
+            err.status = 400;
+            throw err;
+        }
+
+        if (!password || password.length < 8) {
+            const err = new Error('Password must be at least 8 characters long.');
+            err.status = 400;
+            throw err;
+        }
+
+        if (!cleanName) {
+            const err = new Error('Full name is required.');
+            err.status = 400;
+            throw err;
+        }
+
+        // Allowed self-registration roles: 'owner' or 'viewer'. 'admin' role requires existing admin provisioning.
+        const cleanRole = (role === 'owner') ? 'owner' : 'viewer';
+
+        // Check if email already registered
+        const existing = await db.query(`
+            SELECT id FROM users WHERE email = $1 LIMIT 1;
+        `, [cleanEmail]);
+
+        if (existing.rows && existing.rows.length > 0) {
+            const err = new Error('An account with this email already exists.');
+            err.status = 409;
+            throw err;
+        }
+
+        const passwordHash = bcrypt.hashSync(password, 10);
+        const newUserId = crypto.randomUUID();
+
+        await db.query(`
+            INSERT INTO users (id, email, password_hash, full_name, role, department, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, true);
+        `, [newUserId, cleanEmail, passwordHash, cleanName, cleanRole, cleanDept]);
+
+        // Auto-login session creation
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = hashToken(rawToken);
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        await db.query(`
+            INSERT INTO sessions (id, user_id, token_hash, ip_address, user_agent, expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6);
+        `, [crypto.randomUUID(), newUserId, tokenHash, ipAddress, userAgent, expiresAt]);
+
+        const csrfToken = generateCsrfToken(rawToken);
+
+        return {
+            user: {
+                id: newUserId,
+                email: cleanEmail,
+                fullName: cleanName,
+                role: cleanRole,
+                department: cleanDept
+            },
+            rawToken,
+            csrfToken,
+            expiresAt
+        };
+    },
+
     async logout(rawToken) {
         if (!rawToken) return;
         const tokenHash = hashToken(rawToken);

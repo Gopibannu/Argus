@@ -130,4 +130,47 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
         
         expect(dev1Check.body.authenticated).toBe(false);
     });
+
+    it('9. POST /api/auth/register creates a new user and issues a stateful session', async () => {
+        const uniqueEmail = `dr.smith.${Date.now()}@argus.local`;
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send({
+                email: uniqueEmail,
+                password: 'SecurePassword123!',
+                fullName: 'Dr. Jane Smith',
+                role: 'owner',
+                department: 'Research'
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.user).toHaveProperty('id');
+        expect(res.body.user.email).toBe(uniqueEmail);
+        expect(res.body.user.role).toBe('owner');
+        expect(res.body.user.department).toBe('Research');
+        expect(res.headers['set-cookie']).toBeDefined();
+
+        // Verify newly registered user can access /api/auth/me
+        const meRes = await request(app)
+            .get('/api/auth/me')
+            .set('Cookie', res.headers['set-cookie']);
+
+        expect(meRes.status).toBe(200);
+        expect(meRes.body.authenticated).toBe(true);
+        expect(meRes.body.user.email).toBe(uniqueEmail);
+    });
+
+    it('10. POST /api/auth/register rejects duplicate email registration', async () => {
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send({
+                email: 'admin@argus.local',
+                password: 'SecurePassword123!',
+                fullName: 'Attacker Impersonator',
+                role: 'owner'
+            });
+
+        expect(res.status).toBe(409);
+        expect(res.body.error).toMatch(/already exists/i);
+    });
 });

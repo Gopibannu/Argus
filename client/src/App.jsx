@@ -15,9 +15,13 @@ export default function App() {
   const [successMsg, setSuccessMsg] = useState('');
   const [health, setHealth] = useState(null);
 
-  // Auth Form State
+  // Auth Form State (Login & Sign Up)
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [department, setDepartment] = useState('Engineering');
+  const [regRole, setRegRole] = useState('viewer'); // 'viewer' | 'owner'
 
   // Documents State
   const [documents, setDocuments] = useState([]);
@@ -211,6 +215,38 @@ export default function App() {
       setCurrentUser(data.user);
       setCsrfToken(data.csrfToken);
       setPassword('');
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRegister(e) {
+    if (e) e.preventDefault();
+    setErrorMsg('');
+    setSubmitting(true);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          department,
+          role: regRole
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Registration failed.');
+
+      setCurrentUser(data.user);
+      setCsrfToken(data.csrfToken);
+      setPassword('');
+      setSuccessMsg(`Welcome to Argus, ${data.user.fullName}! Account created with role: ${data.user.role}.`);
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
@@ -486,45 +522,132 @@ export default function App() {
           <p>Verifying secure session in database...</p>
         </div>
       ) : !currentUser ? (
-        /* Login Form */
+        /* Login & Sign Up Form */
         <div style={{ maxWidth: '480px', margin: '2rem auto 0 auto' }}>
           <div className="glass-panel" style={{ padding: '2rem' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{ display: 'inline-flex', padding: '0.75rem', borderRadius: '50%', background: 'rgba(56, 189, 248, 0.1)', marginBottom: '0.75rem' }}>
                 <Lock size={28} color="#38bdf8" />
               </div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>Secure Authentication</h2>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>
+                {authMode === 'login' ? 'Secure Authentication' : 'Create Argus Account'}
+              </h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                Server-side sessions with live database authorization
+                {authMode === 'login' 
+                  ? 'Server-side sessions with live database authorization' 
+                  : 'Self-provision as Document Owner or Compliance Viewer'}
               </p>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>
-                Judge Quick-Fill (One-Click Role Selection):
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {quickRoles.map(r => (
-                  <button key={r.email} type="button" className="role-pill" onClick={() => fillRole(r)}>
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Email Address</label>
-                <input type="email" required className="input-field" placeholder="admin@argus.local" value={email} onChange={e => setEmail(e.target.value)} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Password</label>
-                <input type="password" required className="input-field" placeholder="••••••••••••" value={password} onChange={e => setPassword(e.target.value)} />
-              </div>
-              <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-                {submitting ? 'Verifying Credentials...' : 'Authenticate'}
+            {/* Auth Mode Toggle Tabs (Login vs Sign Up) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: 'rgba(0, 0, 0, 0.3)', padding: '0.25rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setErrorMsg(''); }}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '0.35rem',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: authMode === 'login' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: authMode === 'login' ? '#38bdf8' : 'var(--text-muted)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Log In
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('signup'); setErrorMsg(''); }}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '0.35rem',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: authMode === 'signup' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                  color: authMode === 'signup' ? '#34d399' : 'var(--text-muted)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Sign Up
+              </button>
+            </div>
+
+            {authMode === 'login' ? (
+              /* Log In View */
+              <div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>
+                    Judge Quick-Fill (One-Click Role Selection):
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    {quickRoles.map(r => (
+                      <button key={r.email} type="button" className="role-pill" onClick={() => fillRole(r)}>
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Email Address</label>
+                    <input type="email" required className="input-field" placeholder="admin@argus.local" value={email} onChange={e => setEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Password</label>
+                    <input type="password" required className="input-field" placeholder="••••••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+                  </div>
+                  <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+                    {submitting ? 'Verifying Credentials...' : 'Authenticate'}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              /* Sign Up View */
+              <div>
+                <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Full Name</label>
+                    <input type="text" required className="input-field" placeholder="Dr. Jane Smith" value={fullName} onChange={e => setFullName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Work Email</label>
+                    <input type="email" required className="input-field" placeholder="jane@company.com" value={email} onChange={e => setEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Password (Min 8 Characters)</label>
+                    <input type="password" required minLength={8} className="input-field" placeholder="••••••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Role</label>
+                      <select className="input-field" value={regRole} onChange={e => setRegRole(e.target.value)}>
+                        <option value="owner">Document Owner</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-muted)' }}>Department</label>
+                      <select className="input-field" value={department} onChange={e => setDepartment(e.target.value)}>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Legal">Legal</option>
+                        <option value="Compliance">Compliance</option>
+                        <option value="Research">Research</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem', background: 'linear-gradient(135deg, #059669, #10b981)' }}>
+                    {submitting ? 'Creating Secure Account...' : 'Register & Log In'}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       ) : (
