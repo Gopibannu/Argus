@@ -147,7 +147,7 @@ class InMemoryDatabase {
         }
 
         // 8. Select latest audit row
-        if (upper.includes('FROM AUDIT_LOG') && upper.includes('ORDER BY SEQUENCE_ID DESC LIMIT 1')) {
+        if (upper.includes('FROM AUDIT_LOG') && upper.includes('ORDER BY SEQUENCE_ID DESC')) {
             if (this.auditLog.length === 0) return { rows: [], rowCount: 0 };
             const latest = this.auditLog[this.auditLog.length - 1];
             return { rows: [latest], rowCount: 1 };
@@ -155,11 +155,18 @@ class InMemoryDatabase {
 
         // 9. Insert into audit_log
         if (upper.startsWith('INSERT INTO AUDIT_LOG')) {
-            const [id, actorId, ip, ua, action, docId, targetUserId, outcome, reason, metadata, prevHash, rowHash] = params;
+            const [id, seq, timestamp, actorId, ip, ua, action, docId, targetUserId, outcome, reason, metadata, prevHash, rowHash] = params;
+            let parsedMeta = {};
+            try {
+                parsedMeta = typeof metadata === 'string' ? JSON.parse(metadata) : (metadata || {});
+            } catch (_) {
+                parsedMeta = { raw: metadata };
+            }
+
             const entry = {
-                sequence_id: this.sequenceId++,
+                sequence_id: seq || this.sequenceId++,
                 id: id || crypto.randomUUID(),
-                timestamp: new Date(),
+                timestamp: timestamp || new Date(),
                 actor_id: actorId,
                 actor_ip: ip,
                 user_agent: ua,
@@ -168,7 +175,7 @@ class InMemoryDatabase {
                 target_user_id: targetUserId,
                 outcome,
                 reason,
-                metadata: typeof metadata === 'string' ? JSON.parse(metadata) : metadata,
+                metadata: parsedMeta,
                 prev_hash: prevHash,
                 row_hash: rowHash
             };
@@ -183,7 +190,249 @@ class InMemoryDatabase {
             throw err;
         }
 
-        // 11. Generic SELECT 1 health check
+        // 11. Documents: INSERT INTO documents
+        if (upper.startsWith('INSERT INTO DOCUMENTS')) {
+            const [id, ownerId, title, filename, storageKey, mime, size, sha256, encKey, encIv, category] = params;
+            const doc = {
+                id,
+                owner_id: ownerId,
+                title,
+                original_filename: filename,
+                storage_key: storageKey,
+                mime_type: mime,
+                file_size_bytes: size,
+                sha256_checksum: sha256,
+                encrypted_data_key: encKey,
+                encryption_iv: encIv,
+                category: category || 'General',
+                grant_version: 1,
+                deleted_at: null,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+            this.documents.set(doc.id, doc);
+            return { rows: [doc], rowCount: 1 };
+        }
+
+        // 12. Documents: SELECT by id WHERE deleted_at IS NULL
+        if (upper.startsWith('SELECT') && upper.includes('FROM DOCUMENTS') && upper.includes('WHERE ID = $1') && upper.includes('DELETED_AT IS NULL')) {
+            const id = params[0];
+            const doc = this.documents.get(id);
+            if (!doc || doc.deleted_at !== null) return { rows: [], rowCount: 0 };
+            return { rows: [{ ...doc }], rowCount: 1 };
+        }
+
+        // 13. Documents: UPDATE grant_version = grant_version + 1
+        if (upper.startsWith('UPDATE DOCUMENTS') && upper.includes('GRANT_VERSION = GRANT_VERSION + 1')) {
+            const id = params[params.length - 1];
+            const doc = this.documents.get(id);
+            if (doc) {
+                doc.grant_version = (doc.grant_version || 1) + 1;
+                if (upper.includes('DELETED_AT = NOW()')) {
+                    doc.deleted_at = new Date();
+                }
+                doc.updated_at = new Date();
+                return { rows: [doc], rowCount: 1 };
+            }
+            return { rows: [], rowCount: 0 };
+        }
+
+        // 14. Documents: UPDATE title & category
+        if (upper.startsWith('UPDATE DOCUMENTS') && upper.includes('TITLE = $1')) {
+            const [newTitle, newCategory, id] = params;
+            const doc = this.documents.get(id);
+            if (doc) {
+                doc.title = newTitle;
+                doc.category = newCategory;
+                doc.updated_at = new Date();
+                return { rows: [doc], rowCount: 1 };
+            }
+            return { rows: [], rowCount: 0 };
+        }
+
+        // 15. Documents: Search & list query with SQL filtering
+        if (upper.startsWith('SELECT DISTINCT') && upper.includes('FROM DOCUMENTS D')) {
+            const userId = params[0];
+            const searchPattern = params[1] ? params[1].replace(/%/g, '').toLowerCase() : null;
+            const categoryFilter = params[2] || (params[1] && !searchPattern ? params[1] : null);
+
+            const results = [];
+            for (const doc of this.documents.values()) {
+                if (doc.deleted_at !== null) continue;
+
+                const isOwner = doc.owner_id === userId;
+                const activeGrant = Array.from(this.grants.values()).find(g => 
+                    g.document_id === doc.id && 
+                    g.grantee_user_id === userId && 
+                    g.revoked_at === null && 
+                    (!g.expires_at || new Date(g.expires_at) > new Date())
+                );
+                // DEBUG:
+                // console.log('IN POOL.JS: doc.id=', doc.id, 'userId=', userId, 'isOwner=', isOwner, 'activeGrant=', activeGrant);
+
+                if (!isOwner && !activeGrant) continue;
+
+                if (searchPattern) {
+                    const matchTitle = doc.title.toLowerCase().includes(searchPattern);
+                    const matchFilename = doc.original_filename.toLowerCase().includes(searchPattern);
+                    if (!matchTitle && !matchFilename) continue;
+                }
+
+                if (categoryFilter && doc.category.toLowerCase() !== categoryFilter.toLowerCase()) {
+                    continue;
+                }
+
+                const owner = this.users.get(doc.owner_id);
+                results.push({
+                    id: doc.id,
+                    owner_id: doc.owner_id,
+                    title: doc.title,
+                    original_filename: doc.original_filename,
+                    mime_type: doc.mime_type,
+                    file_size_bytes: doc.file_size_bytes,
+                    category: doc.category,
+                    grant_version: doc.grant_version,
+                    created_at: doc.created_at,
+                    updated_at: doc.updated_at,
+                    owner_name: owner ? owner.full_name : 'Unknown',
+                    owner_email: owner ? owner.email : 'unknown@argus.local',
+                    permission: isOwner ? 'owner' : activeGrant.permission
+                });
+            }
+
+            results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            // console.log('COMPUTED RESULTS IN POOL:', results);
+            return { rows: results, rowCount: results.length };
+        }
+
+        // 16. Grants: INSERT INTO grants
+        if (upper.startsWith('INSERT INTO GRANTS')) {
+            const [id, docId, granteeId, grantedById, permission] = params;
+            const grant = {
+                id,
+                document_id: docId,
+                grantee_user_id: granteeId,
+                granted_by_user_id: grantedById,
+                permission,
+                expires_at: null,
+                revoked_at: null,
+                created_at: new Date()
+            };
+            this.grants.set(grant.id, grant);
+            return { rows: [grant], rowCount: 1 };
+        }
+
+        // 17. Grants: SELECT by document_id and grantee_user_id (active)
+        if (upper.startsWith('SELECT') && upper.includes('FROM GRANTS') && upper.includes('DOCUMENT_ID = $1') && upper.includes('GRANTEE_USER_ID = $2')) {
+            const [docId, granteeId] = params;
+            const grant = Array.from(this.grants.values()).find(g =>
+                g.document_id === docId &&
+                g.grantee_user_id === granteeId &&
+                g.revoked_at === null &&
+                (!g.expires_at || new Date(g.expires_at) > new Date())
+            );
+            return { rows: grant ? [{ ...grant }] : [], rowCount: grant ? 1 : 0 };
+        }
+
+        // 18. Grants: SELECT by id and document_id
+        if (upper.startsWith('SELECT') && upper.includes('FROM GRANTS') && upper.includes('ID = $1') && upper.includes('DOCUMENT_ID = $2')) {
+            const [grantId, docId] = params;
+            const grant = Array.from(this.grants.values()).find(g => g.id === grantId && g.document_id === docId);
+            return { rows: grant ? [{ ...grant }] : [], rowCount: grant ? 1 : 0 };
+        }
+
+        // 19. Grants: List all for document_id (JOIN users)
+        if (upper.startsWith('SELECT') && upper.includes('FROM GRANTS G') && upper.includes('JOIN USERS U') && upper.includes('G.DOCUMENT_ID = $1')) {
+            const docId = params[0];
+            const results = [];
+            for (const g of this.grants.values()) {
+                if (g.document_id === docId) {
+                    const u = this.users.get(g.grantee_user_id);
+                    results.push({
+                        id: g.id,
+                        permission: g.permission,
+                        expires_at: g.expires_at,
+                        revoked_at: g.revoked_at,
+                        created_at: g.created_at,
+                        grantee_id: u ? u.id : g.grantee_user_id,
+                        grantee_email: u ? u.email : 'unknown',
+                        grantee_name: u ? u.full_name : 'Unknown User',
+                        grantee_department: u ? u.department : 'General'
+                    });
+                }
+            }
+            results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            return { rows: results, rowCount: results.length };
+        }
+
+        // 20. Grants: UPDATE revoked_at = NOW()
+        if (upper.startsWith('UPDATE GRANTS') && upper.includes('REVOKED_AT = NOW()')) {
+            const grantId = params[0];
+            const grant = this.grants.get(grantId);
+            if (grant) {
+                grant.revoked_at = new Date();
+                return { rows: [grant], rowCount: 1 };
+            }
+            return { rows: [], rowCount: 0 };
+        }
+
+        // 21. Download Tickets: INSERT INTO download_tickets
+        if (upper.startsWith('INSERT INTO DOWNLOAD_TICKETS')) {
+            const [id, ticketHash, docId, userId, grantVer, expiresAt] = params;
+            const ticket = {
+                id,
+                ticket_hash: ticketHash,
+                document_id: docId,
+                user_id: userId,
+                grant_version_at_issue: grantVer,
+                expires_at: expiresAt,
+                used: false,
+                created_at: new Date()
+            };
+            this.downloadTickets.set(ticket.id, ticket);
+            return { rows: [ticket], rowCount: 1 };
+        }
+
+        // 22. Download Tickets: SELECT by ticket_hash JOIN documents
+        if (upper.startsWith('SELECT') && upper.includes('FROM DOWNLOAD_TICKETS T') && upper.includes('JOIN DOCUMENTS D') && upper.includes('T.TICKET_HASH = $1')) {
+            const ticketHash = params[0];
+            const ticket = Array.from(this.downloadTickets.values()).find(t => t.ticket_hash === ticketHash);
+            if (!ticket) return { rows: [], rowCount: 0 };
+
+            const doc = this.documents.get(ticket.document_id);
+            if (!doc) return { rows: [], rowCount: 0 };
+
+            return {
+                rows: [{
+                    ticket_id: ticket.id,
+                    document_id: ticket.document_id,
+                    user_id: ticket.user_id,
+                    grant_version_at_issue: ticket.grant_version_at_issue,
+                    expires_at: ticket.expires_at,
+                    used: ticket.used,
+                    original_filename: doc.original_filename,
+                    mime_type: doc.mime_type,
+                    storage_key: doc.storage_key,
+                    encrypted_data_key: doc.encrypted_data_key,
+                    live_grant_version: doc.grant_version,
+                    deleted_at: doc.deleted_at
+                }],
+                rowCount: 1
+            };
+        }
+
+        // 23. Download Tickets: UPDATE used = true
+        if (upper.startsWith('UPDATE DOWNLOAD_TICKETS') && upper.includes('USED = TRUE')) {
+            const id = params[0];
+            const ticket = this.downloadTickets.get(id);
+            if (ticket) {
+                ticket.used = true;
+                return { rows: [ticket], rowCount: 1 };
+            }
+            return { rows: [], rowCount: 0 };
+        }
+
+        // 24. Generic SELECT 1 health check
         if (upper === 'SELECT 1' || upper === 'SELECT 1 AS OK') {
             return { rows: [{ ok: 1 }], rowCount: 1 };
         }

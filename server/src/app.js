@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
+import documentsRouter from './routes/documents.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ export function createApp() {
     // 6. API Route Handlers
     app.use('/api', healthRouter);
     app.use('/api/auth', authRouter);
+    app.use('/api/documents', documentsRouter);
 
     // 7. Serve pre-built React frontend (Same-Origin deployment)
     const clientDistPath = path.resolve(__dirname, '../../client/dist');
