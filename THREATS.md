@@ -1,0 +1,26 @@
+# Argus Threat Model (THREATS.md)
+
+> Snovasys Fresher Hiring Challenge 2026  
+> **Source of Truth:** Live, test-verified mitigations against real-world attack vectors.
+
+---
+
+## Threat Matrix
+
+| Threat ID | Threat & Attack Vector | How Attacker Tries It | Mitigation Implemented | Test That Proves It | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **THR-01** | **User Enumeration via Auth Timing** | Attacker probes `/api/auth/login` with various emails; measures response time differences to discover valid accounts. | Constant-time password hashing comparison using a dummy bcrypt hash when email is not found; uniform error message (`Invalid email or password.`). | `tests/auth.test.js: Test 4` | **CLOSED** |
+| **THR-02** | **Credential Stuffing & Brute Force** | Attacker scripts automated dictionary attacks against `/api/auth/login`. | Express-rate-limit strictly constrains `/api/auth/login` to 15 attempts per 15 minutes per IP. | `server/src/middleware/rateLimiter.js` (`authLimiter`) | **CLOSED** |
+| **THR-03** | **Session Hijacking via Cross-Site Scripting (XSS)** | Malicious JavaScript injected via third-party library or DOM injection reads `document.cookie`. | Session tokens are set with `HttpOnly; SameSite=Strict; Secure`. Browser forbids JavaScript access to cookie. | `tests/auth.test.js: Test 6` | **CLOSED** |
+| **THR-04** | **Cross-Site Request Forgery (CSRF)** | Attacker tricks user's browser into sending authenticated state-changing requests from a malicious site. | Dual-layer: `SameSite=Strict` cookie prevents cross-site submission; HMAC-derived `X-CSRF-Token` verified on all POST/PUT/DELETE. | `server/src/middleware/csrf.js` | **CLOSED** |
+| **THR-05** | **Stateless JWT Stale Access / Revocation Delay** | User account deactivated or permissions revoked; attacker uses valid unexpired JWT to keep querying data for 15 minutes. | **No stateless JWTs.** Server-side opaque sessions stored in PostgreSQL. Every request checks live DB status (`is_active = true`). | `tests/auth.test.js: Test 5 & 7` | **CLOSED** |
+| **THR-06** | **Session Replay After Logout** | Attacker captures raw session cookie and replays it after the victim clicks "Log Out". | Session row is deleted from database upon logout; subsequent requests return 401. | `tests/auth.test.js: Test 7` | **CLOSED** |
+| **THR-07** | **Concurrent Device Session Persistence** | Attacker compromises one device session; victim clicks "Log Out Everywhere" from another device. | `/api/auth/logout-all` deletes all session rows for that `user_id` across all devices in a single query. | `tests/auth.test.js: Test 8` | **CLOSED** |
+| **THR-08** | **Clickjacking UI Redress** | Attacker frames Argus application inside an iframe to hijack user clicks. | Helmet sets `frame-ancestors: 'none'` in Content-Security-Policy and `X-Frame-Options: DENY`. | `server/src/middleware/security.js` | **CLOSED** |
+| **THR-09** | **MIME Sniffing & XSS Confusion** | Attacker uploads malicious script disguised as harmless media. | Helmet sets `X-Content-Type-Options: nosniff`. | `server/src/middleware/security.js` | **CLOSED** |
+| **THR-10** | **Database Audit Log Tampering** | Attacker or malicious DBA attempts `UPDATE` or `DELETE` on `audit_log` to remove evidence. | PostgreSQL trigger `prevent_audit_tampering()` raises exception on UPDATE/DELETE; app role lacks UPDATE/DELETE privileges; cryptographic hash chain. | `db/schema.sql: trg_protect_audit_log` | **CLOSED** |
+| **THR-11** | **IDOR & Existence Enumeration** | Attacker guesses document UUIDs (`/api/documents/:id`); probing 403 vs 404 to discover existence of confidential documents. | Server returns uniform **404 Not Found** for both non-existent AND unauthorized documents. Still logs denied attempt. | `tests/document.test.js` (Phase 2) | **PLANNED (Phase 2)** |
+| **THR-12** | **Direct Storage URL Access** | Attacker accesses cloud storage bucket directly to bypass server authorization. | Bucket is 100% private with public access disabled. Files streamed strictly via `authorize()` using server service role. | `server/src/services/storageService.js` (Phase 2) | **PLANNED (Phase 2)** |
+| **THR-13** | **Unrestricted File Upload / Web Shells** | Attacker uploads `.php`, `.exe`, or polyglot files to execute arbitrary code. | Strict magic-byte inspection (not client extension/MIME), random UUID storage keys, and 10MB size limits. | `server/src/services/uploadValidator.js` (Phase 2) | **PLANNED (Phase 2)** |
+| **THR-14** | **AI Prompt Injection via Document Title** | Malicious document title contains prompt injection designed to force AI suggestion to widen access. | AI suggestions receive sanitized metadata only; output is strictly validated against existing user UUIDs; suggestions never auto-grant. | `server/src/services/aiService.js` (Phase 5) | **PLANNED (Phase 5)** |
+| **THR-15** | **Free Tier Cold Starts & DB Superuser Tampering** | Free tier spin-down delays requests; cloud provider superuser can alter records. | Cold starts accepted as free-tier reality; DB superuser tampering mitigated by external daily hash anchoring to public Git. | Documented in `WRITEUP.md` | **ACCEPTED RISK** |
