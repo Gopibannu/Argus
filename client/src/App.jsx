@@ -4,7 +4,7 @@ import {
   LogOut, Terminal, ExternalLink, ShieldAlert, Cpu, UploadCloud, 
   FileText, Download, Users, Trash2, Search, Filter, Clock, Eye, AlertTriangle,
   Activity, ShieldCheck, Database, ToggleLeft, ToggleRight, Sparkles,
-  Mail, Send, ArrowLeft
+  Mail, Send, ArrowLeft, FileCheck, Zap, Layers, Binary, Check
 } from 'lucide-react';
 
 export default function App() {
@@ -584,60 +584,115 @@ export default function App() {
           <p>Verifying secure session in database...</p>
         </div>
       ) : !currentUser ? (
-        /* Login & Sign Up Form */
-        <div style={{ maxWidth: '480px', margin: '2rem auto 0 auto' }}>
-          <div className="glass-panel" style={{ padding: '2rem' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'inline-flex', padding: '0.75rem', borderRadius: '50%', background: 'rgba(56, 189, 248, 0.1)', marginBottom: '0.75rem' }}>
-                <Lock size={28} color="#38bdf8" />
+        /* Landing Showcase & Login/Sign Up */
+        <div>
+          {/* Hero Showcase Section */}
+          <div className="hero-glow-card" style={{ marginBottom: '2.5rem' }}>
+            <div style={{ maxWidth: '780px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.85rem', borderRadius: '9999px', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', marginBottom: '1.25rem' }}>
+                <Shield size={15} color="#38bdf8" />
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Snovasys Fresher Challenge 2026 • Security Architecture
+                </span>
               </div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>
-                {authMode === 'login' ? 'Secure Authentication' : 'Create Argus Account'}
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
+                Zero-Trust Document Sharing with a <span className="text-gradient-cyan">Real Audit Trail</span>.
               </h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                {authMode === 'login' 
-                  ? 'Server-side sessions with live database authorization' 
-                  : 'Self-provision as Document Owner or Compliance Viewer'}
+              <p style={{ fontSize: '1.05rem', color: '#94a3b8', lineHeight: 1.6, marginBottom: '1.75rem' }}>
+                The wrong person can never read a file, and you can mathematically prove who did. Featuring single choke point authorization, AES-256-GCM envelope encryption, tamper-evident SHA-256 hash chains, and instant multi-device revocation.
               </p>
-            </div>
 
-            {/* Auth Mode Toggle Tabs (Login vs Sign Up) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: 'rgba(0, 0, 0, 0.3)', padding: '0.25rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
-              <button
-                type="button"
-                onClick={() => { setAuthMode('login'); setErrorMsg(''); }}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.35rem',
-                  border: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: authMode === 'login' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                  color: authMode === 'login' ? '#38bdf8' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Log In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAuthMode('signup'); setErrorMsg(''); }}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.35rem',
-                  border: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: authMode === 'signup' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                  color: authMode === 'signup' ? '#34d399' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Sign Up
-              </button>
+              {/* 3 Core Architecture Pillars */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '0.75rem', padding: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <Lock size={18} color="#38bdf8" />
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f1f5f9' }}>Anti-IDOR Core</span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                    Uniform 404 on ungranted files. Zero metadata or existence enumeration leakage.
+                  </p>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '0.75rem', padding: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <Binary size={18} color="#34d399" />
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f1f5f9' }}>Tamper-Evident Chain</span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                    Cryptographic SHA-256 hash chain with database triggers blocking UPDATE/DELETE.
+                  </p>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '0.75rem', padding: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <Zap size={18} color="#a855f7" />
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f1f5f9' }}>Instant Revocation</span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                    Opaque stateful sessions + per-document grant versioning kill cached tokens in 0ms.
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Interactive Login & Sign Up Box */}
+          <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+            <div className="glass-panel" style={{ padding: '2.25rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+                <div style={{ display: 'inline-flex', padding: '0.85rem', borderRadius: '50%', background: 'rgba(56, 189, 248, 0.12)', marginBottom: '0.75rem', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                  <Lock size={28} color="#38bdf8" />
+                </div>
+                <h2 style={{ fontSize: '1.45rem', fontWeight: 800 }}>
+                  {authMode === 'login' ? 'Secure Authentication' : 'Create Argus Account'}
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {authMode === 'login' 
+                    ? 'Server-side sessions with live database authorization' 
+                    : 'Self-provision as Document Owner or Compliance Viewer'}
+                </p>
+              </div>
+
+              {/* Auth Mode Toggle Tabs (Login vs Sign Up) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: 'rgba(0, 0, 0, 0.35)', padding: '0.35rem', borderRadius: '0.65rem', marginBottom: '1.75rem', border: '1px solid var(--border-subtle)' }}>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setErrorMsg(''); setOtpStep(false); }}
+                  style={{
+                    padding: '0.6rem',
+                    borderRadius: '0.45rem',
+                    border: 'none',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: authMode === 'login' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                    color: authMode === 'login' ? '#38bdf8' : 'var(--text-muted)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: authMode === 'login' ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none'
+                  }}
+                >
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('signup'); setErrorMsg(''); }}
+                  style={{
+                    padding: '0.6rem',
+                    borderRadius: '0.45rem',
+                    border: 'none',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: authMode === 'signup' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                    color: authMode === 'signup' ? '#34d399' : 'var(--text-muted)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: authMode === 'signup' ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none'
+                  }}
+                >
+                  Sign Up (with OTP)
+                </button>
+              </div>
 
             {authMode === 'login' ? (
               /* Log In View */
@@ -793,6 +848,7 @@ export default function App() {
             )}
           </div>
         </div>
+      </div>
       ) : (
         /* Authenticated Workspace */
         <div>
