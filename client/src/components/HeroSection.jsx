@@ -1,12 +1,13 @@
 import React from 'react';
 import { 
   Shield, Lock, Binary, Zap, Key, 
-  Terminal, Sparkles, CheckCircle2
+  Terminal, Sparkles, CheckCircle2, ArrowRight,
+  UserCheck, ShieldAlert
 } from 'lucide-react';
 
-export default function HeroSection({ onSelectRole, quickRoles }) {
+export default function HeroSection({ onSelectRole, quickRoles, onOpenAuthModal }) {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-b from-slate-900/90 via-[#0a0f1d] to-[#060913] p-8 sm:p-12 mb-12 shadow-2xl shadow-sky-950/40">
+    <section className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-b from-slate-900/90 via-[#0a0f1d] to-[#060913] p-8 sm:p-14 mb-12 shadow-2xl shadow-sky-950/40">
       
       {/* Ambient background glows */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -29,9 +30,29 @@ export default function HeroSection({ onSelectRole, quickRoles }) {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+        <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
           The wrong person can never read a file, and you can mathematically prove who did. Engineered with single choke-point authorization, envelope AES-256-GCM encryption, tamper-evident hash chains, and instant multi-device revocation.
         </p>
+
+        {/* Call to action buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
+          <button
+            type="button"
+            onClick={() => onOpenAuthModal('login')}
+            className="btn-primary !py-3 !px-7 text-sm font-bold flex items-center gap-2 shadow-sky-950/50 cursor-pointer"
+          >
+            <span>Launch Security Vault</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenAuthModal('signup')}
+            className="btn-secondary !py-3 !px-6 text-sm font-semibold cursor-pointer"
+          >
+            <span>Create Free Account</span>
+          </button>
+        </div>
 
         {/* 4 Core Pillars Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left mb-10">
@@ -79,13 +100,13 @@ export default function HeroSection({ onSelectRole, quickRoles }) {
         </div>
 
         {/* Demo Fast-Fill Roles Bar */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 border border-sky-500/25 max-w-2xl mx-auto shadow-inner">
+        <div className="p-5 rounded-2xl bg-slate-950/80 border border-sky-500/25 max-w-2xl mx-auto shadow-inner">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mb-3 text-xs text-slate-400 font-semibold">
             <span className="flex items-center gap-2 text-sky-400">
               <Terminal className="w-4 h-4" />
               <span>JUDGE DEMO: One-Click Persona Auto-Fill</span>
             </span>
-            <span className="text-[11px] text-slate-500">Auto-populates credentials below</span>
+            <span className="text-[11px] text-slate-500">Opens sign in popup with credentials pre-filled</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2">

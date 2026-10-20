@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Shield, LogOut, FileText, ShieldCheck, 
-  BookOpen, Terminal, Sparkles
+  BookOpen, Terminal, Sparkles, LogIn, UserPlus
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -9,10 +9,11 @@ export default function Navbar({
   health, 
   activeTab, 
   setActiveTab, 
-  onLogout 
+  onLogout,
+  onOpenAuthModal
 }) {
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-[#060913]/85 border-b border-white/[0.08] transition-all">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#060913]/90 border-b border-white/[0.08] transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
         {/* Left: Brand Identity */}
@@ -129,13 +130,24 @@ export default function Navbar({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <a 
-                href="#auth-card" 
-                className="btn-primary !py-1.5 !px-3.5 !text-xs"
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => onOpenAuthModal('login')}
+                className="btn-secondary !py-1.5 !px-3.5 !text-xs cursor-pointer flex items-center gap-1.5"
               >
-                Sign In
-              </a>
+                <LogIn className="w-3.5 h-3.5 text-sky-400" />
+                <span>Sign In</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenAuthModal('signup')}
+                className="btn-primary !py-1.5 !px-3.5 !text-xs cursor-pointer flex items-center gap-1.5 shadow-sky-900/30"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Create Account</span>
+              </button>
             </div>
           )}
         </div>

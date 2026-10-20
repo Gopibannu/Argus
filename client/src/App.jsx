@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
-import AuthCard from './components/AuthCard';
+import AuthModal from './components/AuthModal';
 import DocumentsView from './components/DocumentsView';
 import AdminSecurityCenter from './components/AdminSecurityCenter';
 import ThreatDefenseView from './components/ThreatDefenseView';
@@ -17,7 +17,8 @@ export default function App() {
   const [successMsg, setSuccessMsg] = useState('');
   const [health, setHealth] = useState(null);
 
-  // Auth Form State (Login & Sign Up & OTP)
+  // Auth Modal State
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -189,6 +190,13 @@ export default function App() {
     }
   }
 
+  function openAuthModal(mode = 'login') {
+    setAuthMode(mode);
+    setOtpStep(false);
+    setErrorMsg('');
+    setIsAuthModalOpen(true);
+  }
+
   async function handleLogin(e) {
     if (e) e.preventDefault();
     setErrorMsg('');
@@ -207,6 +215,8 @@ export default function App() {
       setCurrentUser(data.user);
       setCsrfToken(data.csrfToken);
       setPassword('');
+      setIsAuthModalOpen(false);
+      setSuccessMsg(`Authenticated as ${data.user.fullName} (${data.user.role.toUpperCase()}).`);
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
@@ -271,6 +281,7 @@ export default function App() {
       setPassword('');
       setOtpStep(false);
       setOtpCode('');
+      setIsAuthModalOpen(false);
       setSuccessMsg(`Email verified! Welcome to Argus, ${data.user.fullName}!`);
     } catch (err) {
       setErrorMsg(err.message);
@@ -294,6 +305,7 @@ export default function App() {
       setAdminMetrics(null);
       setAuditLogs([]);
       setActiveTab('documents');
+      setSuccessMsg('Signed out of vault.');
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -513,8 +525,7 @@ export default function App() {
     setEmail(r.email);
     setPassword('Password@Argus2026!');
     setErrorMsg('');
-    const authElem = document.getElementById('auth-card');
-    if (authElem) authElem.scrollIntoView({ behavior: 'smooth' });
+    openAuthModal('login');
   }
 
   return (
@@ -527,9 +538,10 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
+        onOpenAuthModal={openAuthModal}
       />
 
-      {/* 2. Main Container with Generous Spacing */}
+      {/* 2. Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {/* Global Floating Alerts */}
@@ -560,32 +572,12 @@ export default function App() {
             <p className="text-sm font-semibold">Verifying secure database session...</p>
           </div>
         ) : !currentUser ? (
-          /* Unauthenticated Landing & Auth View */
-          <div className="space-y-12">
-            <HeroSection onSelectRole={fillRole} quickRoles={quickRoles} />
-            <AuthCard
-              authMode={authMode}
-              setAuthMode={setAuthMode}
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              fullName={fullName}
-              setFullName={setFullName}
-              department={department}
-              setDepartment={setDepartment}
-              regRole={regRole}
-              setRegRole={setRegRole}
-              otpStep={otpStep}
-              setOtpStep={setOtpStep}
-              otpCode={otpCode}
-              setOtpCode={setOtpCode}
-              pendingEmail={pendingEmail}
-              demoOtp={demoOtp}
-              submitting={submitting}
-              onLogin={handleLogin}
-              onInitiateRegister={handleInitiateRegister}
-              onVerifyOtp={handleVerifyOtp}
+          /* Unauthenticated Landing View (Clean, without in-page login form) */
+          <div>
+            <HeroSection 
+              onSelectRole={fillRole} 
+              quickRoles={quickRoles} 
+              onOpenAuthModal={openAuthModal}
             />
           </div>
         ) : (
@@ -642,6 +634,34 @@ export default function App() {
         )}
 
       </main>
+
+      {/* Interactive Pop-Up Auth Modal (Sign In / Register / OTP) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        fullName={fullName}
+        setFullName={setFullName}
+        department={department}
+        setDepartment={setDepartment}
+        regRole={regRole}
+        setRegRole={setRegRole}
+        otpStep={otpStep}
+        setOtpStep={setOtpStep}
+        otpCode={otpCode}
+        setOtpCode={setOtpCode}
+        pendingEmail={pendingEmail}
+        demoOtp={demoOtp}
+        submitting={submitting}
+        onLogin={handleLogin}
+        onInitiateRegister={handleInitiateRegister}
+        onVerifyOtp={handleVerifyOtp}
+      />
 
       {/* Grants & AI Modal */}
       <GrantsModal
