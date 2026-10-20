@@ -59,9 +59,13 @@ npm start
 Open **[http://localhost:5000](http://localhost:5000)** in your browser.  
 Check health status at **[http://localhost:5000/api/health](http://localhost:5000/api/health)**.
 
-### 4. Run Automated Security Test Matrix
+### 4. Run Automated Security Test Matrix & Mutation Testing
 ```bash
+# Run 43 automated security unit, integration, and isolation tests
 npm test
+
+# Run Mutation Testing Engine (100% kill rate proving tests detect bypasses)
+npm run test:mutation-authz
 ```
 
 ---
@@ -69,12 +73,12 @@ npm test
 ## ☁️ Deployment Instructions (Render + Supabase Free Tier)
 
 1. **Database & Storage (Supabase)**:
-   - Create a project on [supabase.com](https://supabase.com).
+   - Create a free project on [supabase.com](https://supabase.com).
    - In Supabase SQL Editor, run `db/schema.sql` and `db/seed.sql` (or run `npm run db:init` locally with `DATABASE_URL`).
    - Create a **Private** storage bucket named `documents` (disable Public bucket toggle).
 2. **Web Service (Render)**:
-   - Connect your GitHub repo to [render.com](https://render.com).
-   - Create a **Web Service** with:
+   - Connect your GitHub repo (`https://github.com/Gopibannu/Argus.git`) to [render.com](https://render.com).
+   - Create a **Web Service** using `render.yaml` or manual configuration:
      - Runtime: `Node`
      - Build Command: `npm install && npm run build`
      - Start Command: `node server/src/index.js`
@@ -82,10 +86,11 @@ npm test
      - `NODE_ENV`: `production`
      - `PORT`: `10000`
      - `DATABASE_URL`: `your_supabase_postgres_uri`
-     - `MASTER_ENCRYPTION_KEY`: `64-character-hex-key`
+     - `MASTER_ENCRYPTION_KEY`: `0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
      - `SESSION_SECRET`: `random-secret-string`
      - `SUPABASE_URL`: `https://your-project.supabase.co`
      - `SUPABASE_SERVICE_ROLE_KEY`: `your-supabase-service-role-key`
+     - `GEMINI_API_KEY`: `your-gemini-api-key` (optional, heuristic fallback included)
 
 > ⚠️ **Free Tier Caveat (Cold Starts):** Render free tier web services spin down after 15 minutes of inactivity. Initial page requests may take 30–50 seconds while the container initializes.
 
@@ -93,8 +98,12 @@ npm test
 
 ## 📚 Deliverables & Documentation Index
 
+- [docs/WRITEUP.md](file:///d:/argus/docs/WRITEUP.md): Full system write-up, architectural choices, and what we deliberately left out.
+- [docs/API.md](file:///d:/argus/docs/API.md): Complete API endpoint catalog with caller permissions and parameters.
+- [docs/DEMO.md](file:///d:/argus/docs/DEMO.md): 5-minute timed judge demonstration script.
+- [docs/INTERVIEW_PREP.md](file:///d:/argus/docs/INTERVIEW_PREP.md): Technical interview prep, line-by-line code walk-throughs, and live-coding scenarios.
 - [docs/ARCHITECTURE.md](file:///d:/argus/docs/ARCHITECTURE.md): Complete Mermaid diagrams (Mindmap, Sequence, ER, Hash chain, Deployment, Roadmap) + Plain-English Walkthroughs.
-- [THREATS.md](file:///d:/argus/THREATS.md): Real-world threat modeling matrix and verified mitigations.
-- [PROMPTS.md](file:///d:/argus/PROMPTS.md): AI interaction history and self-critique log.
+- [THREATS.md](file:///d:/argus/THREATS.md): Real-world threat modeling matrix and verified mitigations (17 threats analyzed).
+- [PROMPTS.md](file:///d:/argus/PROMPTS.md): AI interaction history and 8 dated self-critiques catching AI security bugs.
 - [db/schema.sql](file:///d:/argus/db/schema.sql): PostgreSQL schema with immutability triggers and constraints.
 - [db/seed.sql](file:///d:/argus/db/seed.sql): Role seed records and genesis audit block.
