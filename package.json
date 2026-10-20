@@ -1,0 +1,37 @@
+{
+  "name": "argus",
+  "version": "1.0.0",
+  "description": "Argus (Audit, Revoke, Grant, Unified Security) - Secure Document Platform",
+  "private": true,
+  "type": "module",
+  "main": "server/src/index.js",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "server": "node server/src/index.js",
+    "client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build",
+    "build": "npm run build:client",
+    "postinstall": "npm --prefix client install",
+    "db:init": "node db/init.js",
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
+    "test:mutation-authz": "node tests/mutationCheck.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
