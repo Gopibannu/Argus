@@ -1355,6 +1355,16 @@ export default function App() {
                       <option value="grant">Grants</option>
                       <option value="revoke">Revocations</option>
                     </select>
+
+                    <a
+                      href="/api/admin/audit/export"
+                      download="argus-audit-chain.json"
+                      className="btn-secondary"
+                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', textDecoration: 'none' }}
+                      title="Download Cryptographic Hash Chain Proof for External Auditor Verification"
+                    >
+                      <Download size={14} /> Export Proof (.JSON)
+                    </a>
                   </div>
                 </div>
 

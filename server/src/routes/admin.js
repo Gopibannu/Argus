@@ -78,6 +78,49 @@ router.get('/audit', async (req, res, next) => {
 });
 
 // ============================================================================
+// 2b. GET /api/admin/audit/export (Export verifiable audit trail snapshot)
+// ============================================================================
+router.get('/audit/export', async (req, res, next) => {
+    try {
+        const entries = await auditService.getAuditTrail({ limit: 1000 });
+        const verification = await auditService.verifyChain();
+
+        const exportBundle = {
+            exportTimestamp: new Date().toISOString(),
+            exportedBy: {
+                id: req.user.id,
+                email: req.user.email,
+                role: req.user.role
+            },
+            chainIntegrity: {
+                valid: verification.valid,
+                totalRecords: verification.totalRows,
+                headHash: verification.headHash,
+                algorithm: 'SHA-256'
+            },
+            records: entries.map(row => ({
+                sequenceId: parseInt(row.sequence_id, 10),
+                timestamp: row.timestamp,
+                actorId: row.actor_id,
+                action: row.action,
+                outcome: row.outcome,
+                reason: row.reason,
+                documentId: row.document_id,
+                targetUserId: row.target_user_id,
+                prevHash: row.prev_hash,
+                rowHash: row.row_hash
+            }))
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="argus-audit-chain.json"');
+        res.json(exportBundle);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// ============================================================================
 // 3. GET /api/admin/metrics (Security metrics & Anomaly detection stats)
 // ============================================================================
 router.get('/metrics', async (req, res, next) => {
