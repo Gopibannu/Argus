@@ -293,4 +293,44 @@ describe('Phase 4: Authorization Matrix & Role Isolation Tests', () => {
             authorize({ id: 'b0000000-0000-0000-0000-000000000001' }, '00000000-0000-0000-0000-999999999999', 'read')
         ).rejects.toHaveProperty('status', 404);
     });
+
+    // ------------------------------------------------------------------------
+    // 9. SEARCH ISOLATION & MASS ASSIGNMENT DEFENSE
+    // ------------------------------------------------------------------------
+    it('Matrix 9: SQL search query join isolation prevents existence and count leaks to ungranted users', async () => {
+        // Dave searches documents
+        const searchRes = await request(app)
+            .get('/api/documents')
+            .set('Cookie', daveCookie);
+        expect(searchRes.status).toBe(200);
+
+        // Dave must not see Bob's document in the search results
+        const found = searchRes.body.documents?.some(d => d.id === bobDocId);
+        expect(found).toBe(false);
+    });
+
+    it('Matrix 10: Metadata update mass assignment protection (whitelisting title & category only)', async () => {
+        // Bob attempts to overwrite protected fields: owner_id, grant_version, storage_key
+        const patchRes = await request(app)
+            .patch(`/api/documents/${bobDocId}`)
+            .set('Cookie', bobCookie)
+            .set('X-CSRF-Token', bobCsrf)
+            .send({
+                title: 'Legitimate Updated Title',
+                owner_id: 'c0000000-0000-0000-0000-000000000001', // Dave's ID
+                grant_version: 999,
+                storage_key: 'hacked_storage_key'
+            });
+
+        expect(patchRes.status).toBe(200);
+        expect(patchRes.body.document.title).toBe('Legitimate Updated Title');
+
+        // Verify document owner remains Bob in database
+        const checkRes = await request(app)
+            .get(`/api/documents/${bobDocId}`)
+            .set('Cookie', bobCookie);
+        expect(checkRes.status).toBe(200);
+        expect(checkRes.body.document.permission).toBe('owner');
+    });
 });
+

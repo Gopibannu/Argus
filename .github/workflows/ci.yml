@@ -8,11 +8,26 @@ on:
 
 jobs:
   security-and-tests:
-    name: Build & Security Tests
+    name: Build & Security Tests (PostgreSQL + Node)
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [ 20.x, 22.x ]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: argus_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout Code
@@ -27,14 +42,26 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Initialize PostgreSQL Schema & Genesis Block
+        run: |
+          sudo apt-get install -y postgresql-client
+          PGPASSWORD=postgrespassword psql -h localhost -U postgres -d argus_ci -f db/schema.sql
+          PGPASSWORD=postgrespassword psql -h localhost -U postgres -d argus_ci -f db/seed.sql
+
       - name: Build React Client (Same-Origin Assets)
         run: npm run build
 
       - name: Run Security & Auth Test Matrix
         run: npm test
+        env:
+          DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/argus_ci
+          MASTER_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          SESSION_SECRET: ci-test-session-secret-random-32bytes
 
       - name: Run Mutation Testing (Verify Test Suite Kills Vulnerability Injections)
         run: npm run test:mutation-authz
+        env:
+          DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/argus_ci
 
       - name: Verify No Secrets Committed
         run: |
@@ -42,3 +69,4 @@ jobs:
             echo "ERROR: .env file found in repository!"
             exit 1
           fi
+

@@ -131,7 +131,7 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
         expect(dev1Check.body.authenticated).toBe(false);
     });
 
-    it('9. POST /api/auth/register creates a new user and issues a stateful session', async () => {
+    it('9. POST /api/auth/register creates a new user and issues a stateful session with viewer role (blocks role self-escalation)', async () => {
         const uniqueEmail = `dr.smith.${Date.now()}@argus.local`;
         const res = await request(app)
             .post('/api/auth/register')
@@ -139,14 +139,15 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
                 email: uniqueEmail,
                 password: 'SecurePassword123!',
                 fullName: 'Dr. Jane Smith',
-                role: 'owner',
+                role: 'owner', // Attempted role escalation
                 department: 'Research'
             });
 
         expect(res.status).toBe(201);
         expect(res.body.user).toHaveProperty('id');
         expect(res.body.user.email).toBe(uniqueEmail);
-        expect(res.body.user.role).toBe('owner');
+        // Role self-escalation blocked: defaults to 'viewer'
+        expect(res.body.user.role).toBe('viewer');
         expect(res.body.user.department).toBe('Research');
         expect(res.headers['set-cookie']).toBeDefined();
 
@@ -192,7 +193,7 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
         expect(res.body.demoOtp).toMatch(/^\d{6}$/);
     });
 
-    it('12. POST /api/auth/verify-register validates OTP and establishes secure session', async () => {
+    it('12. POST /api/auth/verify-register validates OTP and establishes secure session with default viewer role', async () => {
         const email = `verified.user.${Date.now()}@argus.local`;
         // Step 1: Initiate
         const initRes = await request(app)
@@ -201,7 +202,6 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
                 email,
                 password: 'VerifiedPassword123!',
                 fullName: 'Verified Officer',
-                role: 'owner',
                 department: 'Legal'
             });
 
@@ -227,7 +227,8 @@ describe('Auth & Session Security Tests (Phase 1)', () => {
 
         expect(goodOtpRes.status).toBe(201);
         expect(goodOtpRes.body.user.email).toBe(email);
-        expect(goodOtpRes.body.user.role).toBe('owner');
+        expect(goodOtpRes.body.user.role).toBe('viewer');
         expect(goodOtpRes.headers['set-cookie']).toBeDefined();
     });
 });
+

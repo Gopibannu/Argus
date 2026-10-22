@@ -21,7 +21,8 @@ import { execSync } from 'node:child_process';
 
 const TARGET_FILES = {
     authz: path.resolve('server/src/services/authzService.js'),
-    audit: path.resolve('server/src/services/auditService.js')
+    audit: path.resolve('server/src/services/auditService.js'),
+    documentsRoute: path.resolve('server/src/routes/documents.js')
 };
 
 const MUTATIONS = [
@@ -59,8 +60,23 @@ const MUTATIONS = [
         original: 'if (recomputedHash !== row.row_hash) {',
         mutated: 'if (false && recomputedHash !== row.row_hash) {',
         expectedFailedTest: 'TAMPER DETECTION (Modifying historical row)'
+    },
+    {
+        name: 'MUTATION 6: Route Choke Point Removal (Bypass authorize on GET /api/documents/:id/download)',
+        file: TARGET_FILES.documentsRoute,
+        original: 'const { document } = await authorize(req.user, req.params.id, \'download\', getReqContext(req));',
+        mutated: 'const docRes = await db.query(\'SELECT * FROM documents WHERE id = $1\', [req.params.id]); const document = docRes.rows[0];',
+        expectedFailedTest: 'Anti-IDOR / Matrix 2 / Matrix 4 (Ungranted viewer download)'
+    },
+    {
+        name: 'MUTATION 7: Route Choke Point Removal (Bypass authorize on DELETE /api/documents/:id)',
+        file: TARGET_FILES.documentsRoute,
+        original: 'const { document } = await authorize(req.user, req.params.id, \'delete\', getReqContext(req));',
+        mutated: 'const document = { id: req.params.id };',
+        expectedFailedTest: 'Privilege Escalation / Matrix 5 (Dave grantee cannot delete)'
     }
 ];
+
 
 async function runMutationTests() {
     console.log('🛡️ [Argus Mutation Testing Engine] Beginning mutation analysis...');

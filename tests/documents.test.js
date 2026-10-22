@@ -239,4 +239,32 @@ describe('Document Security, Authorization & Revocation Tests (Phase 2)', () => 
         expect(ticketDownloadAfterRevoke.status).toBe(403);
         expect(ticketDownloadAfterRevoke.body.error).toMatch(/access revoked/i);
     });
+
+    it('14. SINGLE-USE TICKET ENFORCEMENT: Redeeming ticket once invalidates it for replay', async () => {
+        // Bob issues new grant to Dave
+        const grantRes = await request(app)
+            .post(`/api/documents/${bobDocId}/grants`)
+            .set('Cookie', bobCookie)
+            .set('X-CSRF-Token', bobCsrf)
+            .send({ granteeEmail: 'viewer1@argus.local', permission: 'read' });
+        expect(grantRes.status).toBe(201);
+
+        // Dave generates ticket
+        const ticketRes = await request(app)
+            .post(`/api/documents/${bobDocId}/ticket`)
+            .set('Cookie', daveCookie)
+            .set('X-CSRF-Token', daveCsrf);
+        expect(ticketRes.status).toBe(200);
+        const ticket = ticketRes.body.ticket;
+
+        // Redemption #1: Success
+        const redeem1 = await request(app).get(`/api/documents/tickets/${ticket}`);
+        expect(redeem1.status).toBe(200);
+
+        // Redemption #2 (Replay attack): Rejected with 403 single-use violation
+        const redeem2 = await request(app).get(`/api/documents/tickets/${ticket}`);
+        expect(redeem2.status).toBe(403);
+        expect(redeem2.body.error).toMatch(/already used|single-use/i);
+    });
 });
+
