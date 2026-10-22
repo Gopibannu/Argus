@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   FileText, Download, Clock, Users, Trash2, 
   Search, Filter, UploadCloud, Cpu, ShieldAlert,
-  Lock, CheckCircle2, Shield
+  Lock, CheckCircle2, Shield, Edit3
 } from 'lucide-react';
 
 export default function DocumentsView({
@@ -24,6 +24,7 @@ export default function DocumentsView({
   onDownload,
   onGenerateTicket,
   onOpenGrantsModal,
+  onOpenEditModal,
   onDeleteDocument,
   onLogoutAll
 }) {
@@ -245,6 +246,19 @@ export default function DocumentsView({
                           <Download className="w-3.5 h-3.5" />
                           <span>Download</span>
                         </button>
+
+                        {/* Edit Metadata Button (Owners and Grantees with 'edit' access) */}
+                        {(doc.permission === 'owner' || doc.permission === 'edit') && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenEditModal(doc)}
+                            className="role-pill !py-1.5 !px-3 text-xs text-amber-300 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
+                            title="Edit Document Metadata"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Edit</span>
+                          </button>
+                        )}
 
                         {/* 60s Ephemeral Ticket */}
                         <button

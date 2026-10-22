@@ -7,6 +7,7 @@ import DocumentsView from './components/DocumentsView';
 import AdminSecurityCenter from './components/AdminSecurityCenter';
 import ThreatDefenseView from './components/ThreatDefenseView';
 import GrantsModal from './components/GrantsModal';
+import EditDocumentModal from './components/EditDocumentModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -16,6 +17,7 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [health, setHealth] = useState(null);
+  const [editingDoc, setEditingDoc] = useState(null);
 
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -513,6 +515,23 @@ export default function App() {
     }
   }
 
+  async function handleSaveDocumentEdit(docId, updatedFields) {
+    const res = await fetch(`/api/documents/${docId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken || ''
+      },
+      body: JSON.stringify(updatedFields)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update document.');
+
+    setSuccessMsg(`Document updated: "${data.document.title}". Tamper-evident audit record committed.`);
+    fetchDocuments();
+  }
+
   const quickRoles = [
     { label: 'Admin (Alice)', email: 'admin@argus.local', role: 'admin' },
     { label: 'Owner (Bob - Eng)', email: 'owner1@argus.local', role: 'owner' },
@@ -603,6 +622,7 @@ export default function App() {
                 onDownload={handleDownload}
                 onGenerateTicket={handleGenerateTicket}
                 onOpenGrantsModal={openGrantsModal}
+                onOpenEditModal={setEditingDoc}
                 onDeleteDocument={handleDeleteDocument}
                 onLogoutAll={handleLogoutAll}
               />
@@ -678,6 +698,14 @@ export default function App() {
         onGrant={handleGrantPermission}
         onRevoke={handleRevokeGrant}
         onFetchAiSuggestions={handleFetchAiSuggestions}
+      />
+
+      {/* Edit Metadata Modal (Owners & Grantees with 'edit' permission) */}
+      <EditDocumentModal
+        document={editingDoc}
+        isOpen={Boolean(editingDoc)}
+        onClose={() => setEditingDoc(null)}
+        onSave={handleSaveDocumentEdit}
       />
 
       {/* Production Footer */}

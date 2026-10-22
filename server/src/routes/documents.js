@@ -400,6 +400,23 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
             WHERE id = $3;
         `, [newTitle, newCategory, document.id]);
 
+        const context = getReqContext(req);
+        await auditService.logEvent({
+            actorId: req.user.id,
+            actorIp: context.ip,
+            userAgent: context.userAgent,
+            action: 'edit',
+            documentId: document.id,
+            outcome: 'allowed',
+            reason: 'DOCUMENT_METADATA_UPDATED',
+            metadata: {
+                previousTitle: document.title,
+                newTitle,
+                previousCategory: document.category,
+                newCategory
+            }
+        });
+
         res.json({
             message: 'Document updated successfully.',
             document: {
