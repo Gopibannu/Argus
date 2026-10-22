@@ -11,7 +11,7 @@
     "client": "npm --prefix client run dev",
     "build:client": "npm --prefix client run build",
     "build": "npm run build:client",
-    "postinstall": "npm --prefix client install",
+    "postinstall": "npm --prefix client install --include=dev",
     "db:init": "node db/init.js",
     "test": "vitest run --reporter=verbose",
     "test:watch": "vitest",
