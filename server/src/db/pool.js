@@ -601,7 +601,12 @@ if (config.databaseUrl && !config.isTest && !config.databaseUrl.includes('localh
 export const db = {
     async query(text, params) {
         if (pool) {
-            return pool.query(text, params);
+            try {
+                return await pool.query(text, params);
+            } catch (err) {
+                console.warn(`⚠️ [DB Fallback] PostgreSQL query failed (${err.message}). Falling back to In-Memory Secure Store.`);
+                return memoryDb.query(text, params);
+            }
         }
         return memoryDb.query(text, params);
     },

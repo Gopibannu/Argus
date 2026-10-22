@@ -1,15 +1,10 @@
 export function errorHandler(err, req, res, next) {
     const status = err.status || 500;
 
-    // Only log 500 crashes as internal server errors
+    // Log 500 crashes so deployment logs immediately show root cause
     if (status >= 500) {
-        console.error(`❌ [Internal Error 500] ${req.method} ${req.url}:`, {
-            message: err.message,
-            code: err.code,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-        });
-    } else if (process.env.NODE_ENV === 'development') {
-        // Subtle debug log for 4xx client rejections
+        console.error(`❌ [Internal Error 500] ${req.method} ${req.url}:`, err.message, err.stack);
+    } else {
         console.log(`🛡️  [Security Rejection ${status}] ${req.method} ${req.url}: ${err.message}`);
     }
 
