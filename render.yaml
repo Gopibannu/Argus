@@ -1,16 +1,18 @@
 services:
   - type: web
-    name: argus-security
-    runtime: node
+    name: argus-security-platform
+    env: node
     plan: free
     region: oregon
-    buildCommand: npm install && npm run build
+    buildCommand: npm run postinstall && npm run build
     startCommand: node server/src/index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        value: 5000
       - key: DATABASE_URL
         sync: false
       - key: SESSION_SECRET
@@ -25,3 +27,5 @@ services:
         value: documents
       - key: GEMINI_API_KEY
         sync: false
+      - key: SEED_DEFAULT_PASSWORD
+        value: Password@Argus2026!

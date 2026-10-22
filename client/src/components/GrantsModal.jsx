@@ -103,33 +103,39 @@ export default function GrantsModal({
         <form onSubmit={onGrant} className="space-y-3 mb-6 p-4 rounded-xl bg-slate-950/60 border border-white/10">
           <h4 className="text-xs font-bold uppercase text-slate-400">Grant Named Access:</h4>
           
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              required
-              className="input-field flex-1 text-xs"
-              placeholder="recipient@argus.local"
-              value={grantEmail}
-              onChange={e => setGrantEmail(e.target.value)}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div className="sm:col-span-6">
+              <input
+                type="email"
+                required
+                className="input-field w-full text-xs placeholder:text-slate-500"
+                placeholder="Enter recipient email (e.g. viewer1@argus.local)"
+                value={grantEmail}
+                onChange={e => setGrantEmail(e.target.value)}
+              />
+            </div>
             
-            <select
-              className="input-field sm:w-36 text-xs"
-              value={grantPermission}
-              onChange={e => setGrantPermission(e.target.value)}
-            >
-              <option value="read">Read Only</option>
-              <option value="edit">Read & Edit</option>
-            </select>
+            <div className="sm:col-span-3">
+              <select
+                className="input-field w-full text-xs"
+                value={grantPermission}
+                onChange={e => setGrantPermission(e.target.value)}
+              >
+                <option value="read">Read Only</option>
+                <option value="edit">Read & Edit</option>
+              </select>
+            </div>
 
-            <button
-              type="submit"
-              disabled={granting || !grantEmail}
-              className="btn-primary !py-2 text-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{granting ? 'Granting...' : 'Grant Access'}</span>
-            </button>
+            <div className="sm:col-span-3">
+              <button
+                type="submit"
+                disabled={granting || !grantEmail}
+                className="btn-primary w-full !py-2.5 text-xs whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{granting ? 'Granting...' : 'Grant Access'}</span>
+              </button>
+            </div>
           </div>
         </form>
 

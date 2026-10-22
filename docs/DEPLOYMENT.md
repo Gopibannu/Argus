@@ -1,111 +1,92 @@
-# Argus Production Deployment Guide (Free Tier)
+# ARGUS — Production Safe & Secure Deployment Guide
 
-This guide provides step-by-step instructions for deploying Argus to **Render** (Node.js Web Service) and **Supabase** (Free Hosted PostgreSQL & Object Storage) at $0 cost.
-
----
-
-## 1. Prerequisites (Free Tier Accounts)
-
-1. **GitHub Account**: Hosting the codebase ([https://github.com/Gopibannu/Argus](https://github.com/Gopibannu/Argus)).
-2. **Supabase Account**: [https://supabase.com](https://supabase.com) (Free 500MB PostgreSQL database + 1GB Storage bucket).
-3. **Render Account**: [https://render.com](https://render.com) (Free web service hosting).
-4. **Google AI Studio Account (Optional)**: [https://aistudio.google.com](https://aistudio.google.com) (Free Gemini 1.5 Flash API Key).
+> **Project:** Argus (Audit, Revoke, Grant, Unified Security)  
+> **Repository:** `https://github.com/Gopibannu/Argus.git`  
+> **Architecture:** Single-Origin Deployment (Express serves pre-compiled Vite React app with HttpOnly SameSite=Strict cookies; zero CORS attack surface).
 
 ---
 
-## 2. Step 1: Set Up Supabase Database & Storage
+## 1. Security Invariants for Production
 
-### A. Database Provisioning
-1. Sign in to [Supabase](https://supabase.com) and create a **New Project** (e.g. `argus-prod`).
-2. Go to **Project Settings** -> **Database** -> **Connection string** (URI mode).
-3. Copy the URI:
-   ```
-   postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
-   ```
-   *(Or direct port 5432 connection)*.
-4. Go to **SQL Editor** in Supabase and run the initialization schema:
-   - Copy contents of [db/schema.sql](file:///d:/argus/db/schema.sql) and execute.
-   - Copy contents of [db/seed.sql](file:///d:/argus/db/seed.sql) and execute.
+When deploying to production, ensure these three non-negotiables are configured:
 
-### B. Storage Provisioning (Optional for Remote Storage)
-1. Go to **Storage** -> **Create a new bucket**.
-2. Name the bucket: `documents`.
-3. Set **Public Bucket** to **OFF** (Private).
-4. From **Project Settings** -> **API**, grab:
-   - `Project URL` (`SUPABASE_URL`)
-   - `service_role secret` (`SUPABASE_SERVICE_ROLE_KEY`)
+1. **Envelope Master Key (`MASTER_ENCRYPTION_KEY`):**
+   - Must be a cryptographically random **32-byte hex string (64 hex characters)**.
+   - Generate with:
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+     ```
+   - Store **only** in your hosting provider's secure secret manager (never commit to git).
+
+2. **Session Secret (`SESSION_SECRET`):**
+   - High-entropy random string (at least 32 characters) used to salt token derivations.
+
+3. **Supabase Private Storage & Database:**
+   - `DATABASE_URL`: Your Supabase or PostgreSQL pool connection string (`postgresql://postgres:password@host:5432/postgres?sslmode=require`).
+   - `SUPABASE_SERVICE_ROLE_KEY`: Service role secret key used **only** by the server to stream AES-256-GCM encrypted chunks. Never expose this to client bundles.
 
 ---
 
-## 3. Step 2: Deploy to Render
+## 2. Deploy Option A: Render (Recommended — 1-Click / Free Tier)
 
-### A. Create Web Service
-1. Log into [Render Dashboard](https://dashboard.render.com).
-2. Click **New +** -> **Web Service**.
-3. Connect your GitHub repository: `Gopibannu/Argus`.
-4. Configure service parameters:
-   - **Name**: `argus-security` (or preferred name)
-   - **Region**: Oregon (US West) or Frankfurt (EU)
-   - **Branch**: `main`
-   - **Root Directory**: *(leave blank / default)*
-   - **Runtime**: `Node`
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `node server/src/index.js`
-   - **Instance Type**: `Free`
+Render automatically detects [`render.yaml`](file:///d:/argus/render.yaml) from your GitHub repository.
 
-### B. Configure Environment Variables
-In the **Environment** tab on Render, add the following key-value pairs:
-
-| Variable Name | Value Description | Example / Generator |
-|---|---|---|
-| `NODE_ENV` | `production` | `production` |
-| `PORT` | `10000` | `10000` |
-| `DATABASE_URL` | Supabase Postgres URI | `postgresql://postgres:...@...supabase.co:5432/postgres` |
-| `SESSION_SECRET` | 64-char random hex string | Run in node: `crypto.randomBytes(32).toString('hex')` |
-| `MASTER_ENCRYPTION_KEY` | 64-char hex string (32 bytes) | Run in node: `crypto.randomBytes(32).toString('hex')` |
-| `SUPABASE_URL` | Supabase Project URL | `https://xxxx.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key | `eyJhbGciOi...` |
-| `SUPABASE_STORAGE_BUCKET` | Bucket Name | `documents` |
-| `GEMINI_API_KEY` | Free Gemini API Key | `AIzaSy...` (Optional, system falls back to heuristic engine) |
-
-> [!NOTE]
-> Generate cryptographic keys locally anytime via:
-> ```bash
-> node -e "console.log('SESSION_SECRET=' + require('crypto').randomBytes(32).toString('hex')); console.log('MASTER_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('hex'))"
-> ```
-
----
-
-## 4. Step 3: Verify Live Deployment
-
-Once Render deploys, test the live URL (e.g., `https://argus-security.onrender.com`):
-
-1. **System Health**:
+### Steps:
+1. Push the repository to GitHub:
    ```bash
-   curl -i https://argus-security.onrender.com/api/health
+   git add .
+   git commit -m "feat(deploy): add production Dockerfile, render.yaml, and deployment configs"
+   git push origin main
    ```
-   *Expected response: `200 OK` with status `healthy`, database `connected`, and hash chain valid.*
-
-2. **Login Verification**:
-   - Navigate to `https://argus-security.onrender.com` in your browser.
-   - Log in as **Alice Admin** (`alice@argus.local` / `AdminPass123!`).
-   - Check the **Audit Trail** and click **Verify Hash Chain Integrity** -> verifies `VALID`.
-   - Log out.
-   - Log in as **Bob Owner** (`bob@argus.local` / `OwnerPass123!`).
-   - Upload a test file (e.g. `test.pdf`), grant read access to **Dave Viewer** (`dave@argus.local`).
-   - Log in as **Dave Viewer** (`dave@argus.local` / `ViewerPass123!`) and verify document is readable.
-   - Attempt to access an ungranted file directly by ID -> returns **404 Not Found** (Anti-IDOR).
+2. Go to [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** -> **Blueprint**.
+4. Connect the repository `https://github.com/Gopibannu/Argus.git`.
+5. Fill in the required environment variables:
+   - `DATABASE_URL`: Your PostgreSQL connection string.
+   - `MASTER_ENCRYPTION_KEY`: 64-character hex key generated above.
+   - `SUPABASE_URL`: Your Supabase project URL.
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key.
+   - `GEMINI_API_KEY`: Google Gemini API key (for AI suggestions).
+6. Click **Apply Blueprint**. Render will build the Vite frontend, bundle it into the Express server, and serve the application with TLS.
 
 ---
 
-## 5. Hackathon Submission Checklist
+## 3. Deploy Option B: Docker Container (Any Cloud / VPS / Railway / Fly.io)
 
-- [x] Live application URL deployed on Render
-- [x] Code pushed to public GitHub repo `Gopibannu/Argus`
-- [x] Verified test suite passing: `43/43` passed
-- [x] Mutation tests passing: `100% kill rate` (5/5 mutants killed)
-- [x] `README.md` includes credentials for all 6 personas
-- [x] `THREATS.md` addresses all 17 security threats
-- [x] `PROMPTS.md` contains dated records and AI mistake corrections
-- [x] Full architectural documentation in `docs/ARCHITECTURE.md`
-- [x] Interview prep guide ready in `docs/INTERVIEW_PREP.md`
+We provide a multi-stage production [`Dockerfile`](file:///d:/argus/Dockerfile) running under a hardened `node` non-root user.
+
+### Build and Test Locally:
+```bash
+# 1. Build container image
+docker build -t argus-security:latest .
+
+# 2. Run container with environment file
+docker run -d \
+  -p 5000:5000 \
+  --env-file .env \
+  --name argus-container \
+  argus-security:latest
+
+# 3. Check health check status
+curl http://localhost:5000/api/health
+```
+
+---
+
+## 4. Deploy Option C: Railway or Fly.io
+
+- **Railway:** Run `railway init` and connect the GitHub repo. Railway will automatically pick up [`Dockerfile`](file:///d:/argus/Dockerfile) and expose port `5000`.
+- **Fly.io:** Run `fly launch` to deploy using the multi-stage Dockerfile.
+
+---
+
+## 5. Post-Deployment Verification Checklist
+
+Once deployed to your production URL (e.g. `https://argus.onrender.com`):
+
+- [ ] `GET /api/health` returns `{"status":"ok", ...}`.
+- [ ] Visit the root URL `https://your-domain.com`: Ensure landing page loads over HTTPS.
+- [ ] Click **Judge Demo: Bob Stone** or sign in to verify stateful session creation.
+- [ ] Upload an encrypted document and verify AES-256-GCM ciphertext in storage.
+- [ ] Verify Anti-IDOR: Access an unauthorized document URL to verify a uniform `404 Not Found` response.
+- [ ] Verify Audit Trail: Go to **Admin Security Center** as Alice (`admin@argus.local`) and click **Verify Hash Chain** to confirm mathematical integrity.
