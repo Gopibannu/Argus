@@ -436,7 +436,7 @@ export default function App() {
     if (!selectedDocForGrants) return;
     setLoadingAi(true);
     try {
-      const res = await fetch(`/api/documents/${selectedDocForGrants.id}/ai-recipients`, {
+      const res = await fetch(`/api/documents/${selectedDocForGrants.id}/ai-suggest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

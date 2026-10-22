@@ -590,9 +590,9 @@ router.post('/:id/grants/:grantId/revoke', requireAuth, async (req, res, next) =
 });
 
 // ============================================================================
-// 12. POST /api/documents/:id/ai-suggest (AI Access Recommendations, Owner Only)
+// 12. POST /api/documents/:id/ai-suggest & /ai-recipients (AI Access Recommendations)
 // ============================================================================
-router.post('/:id/ai-suggest', requireAuth, async (req, res, next) => {
+const handleAiSuggest = async (req, res, next) => {
     try {
         // Must be authorized as owner to request recipient suggestions
         const { document } = await authorize(req.user, req.params.id, 'grant', getReqContext(req));
@@ -603,6 +603,9 @@ router.post('/:id/ai-suggest', requireAuth, async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-});
+};
+
+router.post('/:id/ai-suggest', requireAuth, handleAiSuggest);
+router.post('/:id/ai-recipients', requireAuth, handleAiSuggest);
 
 export default router;
