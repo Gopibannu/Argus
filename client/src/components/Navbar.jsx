@@ -40,17 +40,17 @@ export default function Navbar({
 
         {/* Center: Primary Navigation Tabs (When Authenticated) */}
         {currentUser && (
-          <nav className="flex items-center gap-1 p-1 rounded-xl bg-slate-900/70 border border-white/5">
+          <nav className="flex items-center gap-1 p-1 rounded-xl bg-slate-900/70 border border-white/5 overflow-x-auto max-w-[200px] sm:max-w-none">
             <button
               type="button"
               onClick={() => setActiveTab('documents')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'documents'
                   ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
-              <FileText className="w-3.5 h-3.5 text-sky-400" />
+              <FileText className="w-3.5 h-3.5 text-sky-400 shrink-0" />
               <span>Documents</span>
             </button>
 
@@ -58,15 +58,15 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={() => setActiveTab('admin')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'admin'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Security Center</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Admin</span>
+                <span className="hidden md:inline-block text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">
                   CHAIN OK
                 </span>
               </button>
@@ -75,14 +75,15 @@ export default function Navbar({
             <button
               type="button"
               onClick={() => setActiveTab('architecture')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'architecture'
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5 text-purple-400" />
-              <span>Threat Defense</span>
+              <BookOpen className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="hidden sm:inline">Threat Defense</span>
+              <span className="sm:hidden">Defense</span>
             </button>
           </nav>
         )}

@@ -198,31 +198,31 @@ export default function DocumentsView({
             <table className="w-full text-left text-xs">
               <thead className="bg-black/30 border-b border-white/10 text-slate-400 font-mono uppercase tracking-wider">
                 <tr>
-                  <th className="py-3.5 px-6">Document Title</th>
-                  <th className="py-3.5 px-6">Owner</th>
-                  <th className="py-3.5 px-6">Category</th>
-                  <th className="py-3.5 px-6">Access Level</th>
-                  <th className="py-3.5 px-6">Size</th>
-                  <th className="py-3.5 px-6 text-right">Actions</th>
+                  <th className="py-3 px-4 sm:px-6">Document Title</th>
+                  <th className="py-3 px-4 sm:px-6 hidden md:table-cell">Owner</th>
+                  <th className="py-3 px-4 sm:px-6 hidden sm:table-cell">Category</th>
+                  <th className="py-3 px-4 sm:px-6">Access</th>
+                  <th className="py-3 px-4 sm:px-6 hidden lg:table-cell">Size</th>
+                  <th className="py-3 px-4 sm:px-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {documents.map(doc => (
                   <tr key={doc.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4 px-6 font-semibold text-slate-200">
+                    <td className="py-3.5 px-4 sm:px-6 font-semibold text-slate-200">
                       <div className="text-sm font-medium">{doc.title}</div>
-                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">{doc.originalFilename}</div>
+                      <div className="text-[11px] font-mono text-slate-500 mt-0.5 truncate max-w-[160px] sm:max-w-none">{doc.originalFilename}</div>
                     </td>
-                    <td className="py-4 px-6 text-slate-300">
+                    <td className="py-3.5 px-4 sm:px-6 text-slate-300 hidden md:table-cell">
                       {doc.ownerName}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-4 sm:px-6 hidden sm:table-cell">
                       <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-[11px]">
                         {doc.category}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-mono font-bold">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider ${
+                    <td className="py-3.5 px-4 sm:px-6 font-mono font-bold">
+                      <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[10px] uppercase tracking-wider ${
                         doc.permission === 'owner' 
                           ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30' 
                           : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
@@ -230,7 +230,7 @@ export default function DocumentsView({
                         {doc.permission}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-mono text-slate-400">
+                    <td className="py-3.5 px-4 sm:px-6 font-mono text-slate-400 hidden lg:table-cell">
                       {(doc.fileSizeBytes / 1024).toFixed(1)} KB
                     </td>
                     <td className="py-4 px-6 text-right">

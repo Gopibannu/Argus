@@ -148,47 +148,48 @@ export default function AdminSecurityCenter({
           <table className="w-full text-left text-xs">
             <thead className="bg-black/30 border-b border-white/10 text-slate-400 font-mono uppercase tracking-wider">
               <tr>
-                <th className="py-3.5 px-6">Name / Department</th>
-                <th className="py-3.5 px-6">Email Address</th>
-                <th className="py-3.5 px-6">Role</th>
-                <th className="py-3.5 px-6">Status</th>
-                <th className="py-3.5 px-6 text-right">Instant Lockout</th>
+                <th className="py-3 px-4 sm:px-6">Name / Department</th>
+                <th className="py-3 px-4 sm:px-6 hidden sm:table-cell">Email Address</th>
+                <th className="py-3 px-4 sm:px-6">Role</th>
+                <th className="py-3 px-4 sm:px-6">Status</th>
+                <th className="py-3 px-4 sm:px-6 text-right">Instant Lockout</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {adminUsers.map(u => (
                 <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="py-4 px-6">
+                  <td className="py-3.5 px-4 sm:px-6">
                     <div className="font-semibold text-slate-200">{u.fullName}</div>
                     <div className="text-[11px] text-slate-500">{u.department}</div>
+                    <div className="text-[10px] text-slate-400 font-mono sm:hidden mt-0.5 truncate max-w-[130px]">{u.email}</div>
                   </td>
-                  <td className="py-4 px-6 text-slate-300 font-mono">{u.email}</td>
-                  <td className="py-4 px-6">
-                    <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-[10px] uppercase font-bold">
+                  <td className="py-3.5 px-4 sm:px-6 text-slate-300 font-mono hidden sm:table-cell">{u.email}</td>
+                  <td className="py-3.5 px-4 sm:px-6">
+                    <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-[10px] uppercase font-bold">
                       {u.role}
                     </span>
                   </td>
-                  <td className="py-4 px-6">
-                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase ${
+                  <td className="py-3.5 px-4 sm:px-6">
+                    <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[10px] font-bold uppercase ${
                       u.isActive 
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
                         : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                     }`}>
-                      {u.isActive ? 'Active' : 'Locked Out'}
+                      {u.isActive ? 'Active' : 'Locked'}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-3.5 px-4 sm:px-6 text-right">
                     {u.id !== currentUser.id && (
                       <button
                         type="button"
                         onClick={() => onToggleUserStatus(u.id, u.isActive, u.fullName)}
-                        className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                        className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
                           u.isActive
                             ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30'
                             : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30'
                         }`}
                       >
-                        {u.isActive ? 'Deactivate (Kill Sessions)' : 'Activate User'}
+                        {u.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                     )}
                   </td>
@@ -201,15 +202,15 @@ export default function AdminSecurityCenter({
 
       {/* Audit Log Stream */}
       <div className="glass-panel border border-white/10 overflow-hidden rounded-2xl">
-        <div className="p-5 border-b border-white/10 flex flex-wrap items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-bold text-white text-sm">Tamper-Evident Audit Trail Stream</h3>
             <p className="text-xs text-slate-400 mt-0.5">Full cryptographic chain representation</p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <select
-              className="input-field !py-1.5 text-xs w-36"
+              className="input-field !py-1.5 text-xs w-32 sm:w-36"
               value={auditOutcomeFilter}
               onChange={e => setAuditOutcomeFilter(e.target.value)}
             >
@@ -219,7 +220,7 @@ export default function AdminSecurityCenter({
             </select>
 
             <select
-              className="input-field !py-1.5 text-xs w-36"
+              className="input-field !py-1.5 text-xs w-32 sm:w-36"
               value={auditActionFilter}
               onChange={e => setAuditActionFilter(e.target.value)}
             >
@@ -234,44 +235,44 @@ export default function AdminSecurityCenter({
             <a
               href="/api/admin/audit/export"
               download="argus-audit-chain.json"
-              className="btn-secondary !py-1.5 !px-3 text-xs"
+              className="btn-secondary !py-1.5 !px-3 text-xs whitespace-nowrap"
               title="Download cryptographic audit bundle"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export Proof (.JSON)</span>
+              <span>Export (.JSON)</span>
             </a>
           </div>
         </div>
 
         <div className="overflow-x-auto max-h-[500px]">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-black/40 border-b border-white/10 text-slate-400 font-mono uppercase tracking-wider sticky top-0 backdrop-blur-md">
               <tr>
-                <th className="py-3.5 px-6">Seq</th>
-                <th className="py-3.5 px-6">Timestamp</th>
-                <th className="py-3.5 px-6">Actor</th>
-                <th className="py-3.5 px-6">Action</th>
-                <th className="py-3.5 px-6">Outcome</th>
-                <th className="py-3.5 px-6">Reason</th>
-                <th className="py-3.5 px-6">Row Hash</th>
+                <th className="py-3 px-4 sm:px-6">Seq</th>
+                <th className="py-3 px-4 sm:px-6">Timestamp</th>
+                <th className="py-3 px-4 sm:px-6">Actor</th>
+                <th className="py-3 px-4 sm:px-6">Action</th>
+                <th className="py-3 px-4 sm:px-6">Outcome</th>
+                <th className="py-3 px-4 sm:px-6">Reason</th>
+                <th className="py-3 px-4 sm:px-6">Row Hash</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 font-mono">
               {auditLogs.map(log => (
                 <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3.5 px-6 text-sky-400 font-bold">#{log.sequenceId}</td>
-                  <td className="py-3.5 px-6 text-slate-400 text-[11px]">
+                  <td className="py-3 px-4 sm:px-6 text-sky-400 font-bold">#{log.sequenceId}</td>
+                  <td className="py-3 px-4 sm:px-6 text-slate-400 text-[11px] whitespace-nowrap">
                     {new Date(log.timestamp).toLocaleTimeString()}
                   </td>
-                  <td className="py-3.5 px-6 text-slate-200">
-                    <div>{log.actor?.name || 'System'}</div>
-                    <div className="text-[10px] text-slate-500 font-sans">{log.actor?.email}</div>
+                  <td className="py-3 px-4 sm:px-6 text-slate-200">
+                    <div className="font-semibold">{log.actor?.name || 'System'}</div>
+                    <div className="text-[10px] text-slate-500 font-sans truncate max-w-[140px]">{log.actor?.email}</div>
                   </td>
-                  <td className="py-3.5 px-6 text-slate-300 uppercase font-bold text-[10px]">
+                  <td className="py-3 px-4 sm:px-6 text-slate-300 uppercase font-bold text-[10px]">
                     {log.action}
                   </td>
-                  <td className="py-3.5 px-6">
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                  <td className="py-3 px-4 sm:px-6">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       log.outcome === 'allowed'
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                         : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
@@ -279,10 +280,10 @@ export default function AdminSecurityCenter({
                       {log.outcome}
                     </span>
                   </td>
-                  <td className="py-3.5 px-6 text-slate-400 font-sans text-xs">
+                  <td className="py-3 px-4 sm:px-6 text-slate-400 font-sans text-xs">
                     {log.reason || 'Normal operation'}
                   </td>
-                  <td className="py-3.5 px-6 text-slate-500 text-[10px] truncate max-w-[120px]" title={log.rowHash}>
+                  <td className="py-3 px-4 sm:px-6 text-slate-500 text-[10px] truncate max-w-[100px] sm:max-w-[120px]" title={log.rowHash}>
                     {log.rowHash?.slice(0, 16)}...
                   </td>
                 </tr>
