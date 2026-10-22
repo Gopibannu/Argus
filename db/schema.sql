@@ -130,7 +130,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
 CREATE OR REPLACE FUNCTION prevent_audit_tampering()
 RETURNS TRIGGER AS $$
 BEGIN
-    RAISE EXCEPTION 'SECURITY VIOLATION: The audit_log table is append-only. Modifying or deleting audit records is strictly prohibited.';
+    RAISE EXCEPTION 'SECURITY VIOLATION: The audit_log table is append-only. Modifying, deleting, or truncating audit records is strictly prohibited.';
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -141,12 +141,21 @@ BEFORE UPDATE OR DELETE ON audit_log
 FOR EACH ROW
 EXECUTE FUNCTION prevent_audit_tampering();
 
+DROP TRIGGER IF EXISTS trg_protect_audit_truncate ON audit_log;
+CREATE TRIGGER trg_protect_audit_truncate
+BEFORE TRUNCATE ON audit_log
+FOR EACH STATEMENT
+EXECUTE FUNCTION prevent_audit_tampering();
+
 -- =====================================================================
--- LEAST PRIVILEGE APP ROLE SETUP (Template for production setup)
--- Run this in production Supabase SQL editor:
---   CREATE ROLE argus_app_user WITH LOGIN PASSWORD 'strong_password';
---   GRANT SELECT, INSERT, UPDATE, DELETE ON users, sessions, documents, grants, download_tickets TO argus_app_user;
+-- LEAST PRIVILEGE APP ROLE SETUP (Template for production database hardening)
+-- In production Supabase / PostgreSQL SQL editor, run:
+--   CREATE ROLE argus_app_user WITH LOGIN PASSWORD 'your_secure_password';
+--   GRANT CONNECT ON DATABASE postgres TO argus_app_user;
+--   GRANT USAGE ON SCHEMA public TO argus_app_user;
+--   GRANT SELECT, INSERT, UPDATE, DELETE ON users, sessions, documents, grants, download_tickets, pending_registrations TO argus_app_user;
 --   GRANT SELECT, INSERT ON audit_log TO argus_app_user;
 --   REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM argus_app_user;
---   GRANT USAGE, SELECT ON SEQUENCE audit_log_sequence_id_seq TO argus_app_user;
+--   GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO argus_app_user;
 -- =====================================================================
+

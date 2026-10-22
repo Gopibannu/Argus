@@ -97,7 +97,7 @@ Owner Department: "${requestingUser.department || 'General'}"
 CANDIDATES:
 ${candidateSummary}`;
 
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiApiKey}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${config.geminiApiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -134,7 +134,7 @@ ${candidateSummary}`;
                                 })
                                 .slice(0, 3);
 
-                            modelUsed = 'Google Gemini 1.5 Flash-Lite';
+                            modelUsed = 'Google Gemini 2.0 Flash';
                         }
                     }
                 }
@@ -178,6 +178,8 @@ ${candidateSummary}`;
                 .map(({ score, ...rest }) => rest);
         }
 
+        const suggestionBatchId = crypto.randomUUID();
+
         // 5. Non-Negotiable Audit Requirement:
         // "Both the suggestion and the decision go into the audit."
         await auditService.logEvent({
@@ -189,6 +191,7 @@ ${candidateSummary}`;
             outcome: 'allowed',
             reason: `AI access recommendations generated via ${modelUsed}`,
             metadata: {
+                suggestionBatchId,
                 model: modelUsed,
                 suggestedCount: suggestions.length,
                 suggestedUsers: suggestions.map(s => ({ id: s.userId, email: s.email, permission: s.permission }))
@@ -196,7 +199,8 @@ ${candidateSummary}`;
         });
 
         return {
-            suggestions,
+            suggestionId: suggestionBatchId,
+            suggestions: suggestions.map(s => ({ ...s, suggestionId: suggestionBatchId })),
             model: modelUsed,
             disclaimer: 'Advisory suggestions only. The system never grants access automatically. A human document owner must explicitly confirm any permission grant.'
         };

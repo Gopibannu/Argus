@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authService } from '../services/authService.js';
 import { COOKIE_NAME, requireAuth } from '../middleware/session.js';
-import { authLimiter } from '../middleware/rateLimiter.js';
+import { authLimiter, otpLimiter } from '../middleware/rateLimiter.js';
 import { config } from '../config/env.js';
 
 const router = Router();
@@ -46,16 +46,16 @@ router.post('/login', authLimiter, async (req, res, next) => {
     }
 });
 
-// POST /api/auth/initiate-register (Step 1: Validate & Send OTP)
-router.post('/initiate-register', authLimiter, async (req, res, next) => {
-    const { email, password, fullName, role, department } = req.body || {};
+// POST /api/auth/initiate-register (Step 1: Validate & Send OTP with Strict Rate Limiting)
+router.post('/initiate-register', otpLimiter, async (req, res, next) => {
+    // SECURITY: Whitelist permitted fields only to block mass assignment / role self-escalation
+    const { email, password, fullName, department } = req.body || {};
 
     try {
         const result = await authService.initiateRegister({
             email,
             password,
             fullName,
-            role,
             department
         });
 
@@ -71,8 +71,9 @@ router.post('/initiate-register', authLimiter, async (req, res, next) => {
 });
 
 // POST /api/auth/verify-register (Step 2: Verify OTP & Establish Session)
-router.post('/verify-register', authLimiter, async (req, res, next) => {
+router.post('/verify-register', otpLimiter, async (req, res, next) => {
     const { email, otp } = req.body || {};
+
 
     try {
         const clientIp = req.ip || req.connection?.remoteAddress || '127.0.0.1';

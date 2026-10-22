@@ -64,9 +64,9 @@ class InMemoryDatabase {
         const queryText = text.trim();
         const upper = queryText.toUpperCase();
 
-        // 1. Transaction statements
-        if (upper === 'BEGIN' || upper === 'COMMIT' || upper === 'ROLLBACK') {
-            return { rows: [], rowCount: 0 };
+        // 1. Transaction and lock statements
+        if (upper === 'BEGIN' || upper === 'COMMIT' || upper === 'ROLLBACK' || upper.includes('PG_ADVISORY_LOCK') || upper.includes('PG_ADVISORY_UNLOCK')) {
+            return { rows: [{ pg_advisory_lock: true, pg_advisory_unlock: true }], rowCount: 1 };
         }
 
         // 1b. Update user (e.g. toggle is_active status)

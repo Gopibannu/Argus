@@ -318,19 +318,34 @@ router.get('/tickets/:ticket', async (req, res, next) => {
 
         const ticket = result.rows[0];
 
-        // Ticket not found or already used
-        if (!ticket || ticket.used) {
+        // Ticket not found
+        if (!ticket) {
             await auditService.logEvent({
-                actorId: ticket?.user_id,
+                actorId: null,
                 actorIp: context.ip,
                 userAgent: context.userAgent,
                 action: 'ticket_download',
-                documentId: ticket?.document_id,
+                documentId: null,
                 outcome: 'denied',
-                reason: 'TICKET_INVALID_OR_ALREADY_USED'
+                reason: 'TICKET_NOT_FOUND'
             });
             return res.status(404).json({ error: 'Ticket invalid or expired.' });
         }
+
+        // Single-use enforcement: Already used ticket rejected with 403 (replay attack defense)
+        if (ticket.used) {
+            await auditService.logEvent({
+                actorId: ticket.user_id,
+                actorIp: context.ip,
+                userAgent: context.userAgent,
+                action: 'ticket_download',
+                documentId: ticket.document_id,
+                outcome: 'denied',
+                reason: 'TICKET_ALREADY_USED_REPLAY_ATTEMPT'
+            });
+            return res.status(403).json({ error: 'Ticket has already been used. Tickets are single-use only.' });
+        }
+
 
         // Expired ticket check
         if (new Date(ticket.expires_at) <= new Date() || ticket.deleted_at) {
@@ -524,7 +539,8 @@ router.post('/:id/grants', requireAuth, async (req, res, next) => {
         // Increment grant_version
         await db.query('UPDATE documents SET grant_version = grant_version + 1 WHERE id = $1', [document.id]);
 
-        // Audit log
+        // Audit log with suggestion link if accepted via AI
+        const { suggestionId } = req.body || {};
         await auditService.logEvent({
             actorId: req.user.id,
             action: 'grant',
@@ -532,7 +548,12 @@ router.post('/:id/grants', requireAuth, async (req, res, next) => {
             targetUserId: grantee.id,
             outcome: 'allowed',
             reason: `GRANTED_${permission.toUpperCase()}_ACCESS`,
-            metadata: { permission, granteeEmail: grantee.email }
+            metadata: { 
+                permission, 
+                granteeEmail: grantee.email,
+                suggestionId: suggestionId || null,
+                aiDecision: suggestionId ? 'accepted' : 'manual_owner_grant'
+            }
         });
 
         res.status(201).json({

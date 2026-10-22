@@ -89,8 +89,9 @@ export const authService = {
             throw err;
         }
 
-        // Allowed self-registration roles: 'owner' or 'viewer'. 'admin' role requires existing admin provisioning.
-        const cleanRole = (role === 'owner') ? 'owner' : 'viewer';
+        // SECURITY: Role self-assignment is forbidden. All self-registrations default to 'viewer'.
+        // Admin or Owner roles must be provisioned directly by an active administrator.
+        const cleanRole = 'viewer';
 
         // Check if email already registered
         const existing = await db.query(`
@@ -138,9 +139,10 @@ export const authService = {
     },
 
     /**
-     * Step 1: Initiate signup by validating input and sending a 6-digit OTP to the email
+     * Step 1: Initiate signup by validating input and sending a 6-digit OTP to the email.
+     * Non-negotiable security: Role self-assignment is forbidden. All public registrations default strictly to 'viewer'.
      */
-    async initiateRegister({ email, password, fullName, role = 'viewer', department = 'General' }) {
+    async initiateRegister({ email, password, fullName, department = 'General' }) {
         const cleanEmail = (email || '').trim().toLowerCase();
         const cleanName = (fullName || '').trim();
         const cleanDept = (department || 'General').trim();
@@ -163,7 +165,9 @@ export const authService = {
             throw err;
         }
 
-        const cleanRole = (role === 'owner') ? 'owner' : 'viewer';
+        // SECURITY: Role self-assignment is blocked. Elevated roles (owner, admin) require existing admin provisioning.
+        const cleanRole = 'viewer';
+
 
         // Check if user already exists
         const existing = await db.query(`

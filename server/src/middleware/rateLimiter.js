@@ -11,6 +11,17 @@ export const authLimiter = rateLimit({
     }
 });
 
+// Strict limiter for OTP generation and verification (Anti-SMS/Email Bombing & Brute Force)
+export const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Max 5 OTP requests per 15 minutes per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        error: 'Too many OTP requests from this IP. Please wait 15 minutes before requesting a new code.'
+    }
+});
+
 // General API rate limiter
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -21,3 +32,4 @@ export const apiLimiter = rateLimit({
         error: 'API rate limit exceeded. Please slow down.'
     }
 });
+

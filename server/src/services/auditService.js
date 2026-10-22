@@ -47,7 +47,11 @@ export const auditService = {
         metadata = {}
     }) {
         try {
-            // 1. Fetch latest audit row to link prev_hash and sequence_id
+            // 1. Acquire transaction/advisory lock on PostgreSQL so concurrent writes cannot fork the hash chain
+            // Lock key: 0x41524755 (ASCII for 'ARGU')
+            await db.query(`SELECT pg_advisory_lock(1095911253);`).catch(() => {});
+
+            // 2. Fetch latest audit row to link prev_hash and sequence_id
             const latestRes = await db.query(`
                 SELECT sequence_id, row_hash 
                 FROM audit_log 
@@ -104,6 +108,9 @@ export const auditService = {
         } catch (err) {
             console.error('❌ [Audit Logging Error] Failed to write audit trail:', err);
             throw new Error(`Audit log failure: ${err.message}`);
+        } finally {
+            // Release advisory lock key 1095911253 ('ARGU')
+            await db.query(`SELECT pg_advisory_unlock(1095911253);`).catch(() => {});
         }
     },
 
