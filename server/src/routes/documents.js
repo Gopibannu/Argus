@@ -25,10 +25,18 @@ function getReqContext(req) {
     };
 }
 
-// ============================================================================
-// 1. POST /api/documents/upload
-// ============================================================================
-router.post('/upload', requireAuth, upload.single('file'), async (req, res, next) => {
+// Middleware supporting both 'file' and 'document' field names
+const handleUploadFile = (req, res, next) => {
+    upload.fields([{ name: 'file', maxCount: 1 }, { name: 'document', maxCount: 1 }])(req, res, (err) => {
+        if (err) return next(err);
+        if (req.files) {
+            req.file = req.files['file']?.[0] || req.files['document']?.[0] || null;
+        }
+        next();
+    });
+};
+
+const handleUploadAction = async (req, res, next) => {
     try {
         const { title, category } = req.body || {};
         const context = getReqContext(req);
@@ -101,7 +109,11 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res, next
     } catch (err) {
         next(err);
     }
-});
+};
+
+// 1. Support both POST /api/documents/upload and POST /api/documents
+router.post('/upload', requireAuth, handleUploadFile, handleUploadAction);
+router.post('/', requireAuth, handleUploadFile, handleUploadAction);
 
 // ============================================================================
 // 2. GET /api/documents (Search & list, SQL-filtered by authorization)

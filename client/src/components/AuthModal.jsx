@@ -104,6 +104,82 @@ export default function AuthModal({
         {/* Mode 1: Login Form */}
         {authMode === 'login' && !otpStep && (
           <form onSubmit={onLogin} className="space-y-4">
+            {/* Quick Demo Predefined Accounts for Hackathon Judges */}
+            <div className="p-3 rounded-2xl bg-slate-950/70 border border-sky-500/20 text-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-[11px] text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                  Predefined Accounts (1-Click Fill)
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">Password@Argus2026!</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@argus.local');
+                    setPassword('Password@Argus2026!');
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl text-left border transition-all cursor-pointer ${
+                    email === 'admin@argus.local'
+                      ? 'bg-purple-500/20 text-purple-200 border-purple-500/50 shadow-sm'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/5'
+                  }`}
+                >
+                  <div className="font-bold text-[11px] text-purple-300">Alice Admin</div>
+                  <div className="text-[10px] text-slate-400 truncate">admin@argus.local</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('owner1@argus.local');
+                    setPassword('Password@Argus2026!');
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl text-left border transition-all cursor-pointer ${
+                    email === 'owner1@argus.local'
+                      ? 'bg-sky-500/20 text-sky-200 border-sky-500/50 shadow-sm'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/5'
+                  }`}
+                >
+                  <div className="font-bold text-[11px] text-sky-300">Bob Owner (Eng)</div>
+                  <div className="text-[10px] text-slate-400 truncate">owner1@argus.local</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('viewer1@argus.local');
+                    setPassword('Password@Argus2026!');
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl text-left border transition-all cursor-pointer ${
+                    email === 'viewer1@argus.local'
+                      ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/50 shadow-sm'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/5'
+                  }`}
+                >
+                  <div className="font-bold text-[11px] text-emerald-300">Dave Viewer (Audit)</div>
+                  <div className="text-[10px] text-slate-400 truncate">viewer1@argus.local</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('owner2@argus.local');
+                    setPassword('Password@Argus2026!');
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl text-left border transition-all cursor-pointer ${
+                    email === 'owner2@argus.local'
+                      ? 'bg-amber-500/20 text-amber-200 border-amber-500/50 shadow-sm'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/5'
+                  }`}
+                >
+                  <div className="font-bold text-[11px] text-amber-300">Carol Owner (Fin)</div>
+                  <div className="text-[10px] text-slate-400 truncate">owner2@argus.local</div>
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">Work Email</label>
               <input

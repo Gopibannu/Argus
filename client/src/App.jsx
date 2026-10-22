@@ -338,12 +338,12 @@ export default function App() {
     setUploading(true);
 
     const formData = new FormData();
-    formData.append('document', selectedFile);
+    formData.append('file', selectedFile);
     formData.append('title', uploadTitle || selectedFile.name);
     formData.append('category', uploadCategory);
 
     try {
-      const res = await fetch('/api/documents', {
+      const res = await fetch('/api/documents/upload', {
         method: 'POST',
         headers: { 'X-CSRF-Token': csrfToken || '' },
         body: formData
