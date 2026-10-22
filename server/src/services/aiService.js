@@ -134,7 +134,7 @@ ${candidateSummary}`;
                                 })
                                 .slice(0, 3);
 
-                            modelUsed = 'Google Gemini 1.5 Flash';
+                            modelUsed = 'Google Gemini 1.5 Flash-Lite';
                         }
                     }
                 }
