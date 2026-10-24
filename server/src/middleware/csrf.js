@@ -7,8 +7,8 @@ export function csrfProtection(req, res, next) {
         return next();
     }
 
-    // 2. Unauthenticated requests (e.g. login) do not use session CSRF
-    if (!req.user || !req.rawSessionToken) {
+    // 2. Unauthenticated requests and authentication endpoints do not use session CSRF
+    if (!req.user || !req.rawSessionToken || req.path.startsWith('/auth') || req.originalUrl?.includes('/api/auth/')) {
         return next();
     }
 
