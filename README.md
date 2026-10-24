@@ -8,7 +8,7 @@
 
 ## 🌐 Live Deployment & Credentials
 
-- **Live Application URL:** **[https://argus-security-platform.onrender.com](https://argus-security-platform.onrender.com)** *(Render Web Service)*
+- **Live Application URL:** **[https://argus-security-platform.onrender.com](https://argus-security-platform-a05q.onrender.com/)** *(Render Web Service)*
 - **Demo Accounts Password:** **`Password@Argus2026!`** *(All pre-seeded accounts have 1-click auto-fill buttons in the web modal)*
 - **Database Engine:** Hybrid Resilient PostgreSQL. Connected to live Supabase / Render PostgreSQL with automated fallback to an in-memory secure vault to ensure zero disruption during database cold starts or maintenance.
 
