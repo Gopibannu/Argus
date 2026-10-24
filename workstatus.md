@@ -77,12 +77,14 @@ Argus guarantees two fundamental enterprise security invariants:
 - [x] Instant User Account Lockout: Admin toggling a user to inactive terminates all active PostgreSQL sessions across all devices immediately.
 - [x] Collaborative editing: Document owners can grant `edit` permissions to named users, audited via `DOCUMENT_METADATA_UPDATED`.
 
-### Phase 5: Gemini AI Access Assistant
-- [x] Context-aware recipient recommendations for document owners (`POST /api/documents/:id/ai-suggest` and `/ai-recipients`).
-- [x] Upgraded to `Google Gemini 2.0 Flash` with deterministic heuristic fallback.
+### Phase 5: Gemini 3.5 Flash-Lite AI Multi-Agent System
+- [x] Multi-agent architecture powered by `Google Gemini 3.5 Flash-Lite` with fallback to deterministic security heuristics.
+- [x] **Agent 1 (Threat Inspector):** Autonomous real-time audit log stream analysis (`POST /api/ai/audit-analysis`) detecting reconnaissance scans (repeated 404 IDOR probes) and anomalous permission mutations.
+- [x] **Agent 2 (Zero-Trust Copilot):** Interactive architecture & cryptographic policy assistant (`POST /api/ai/copilot-chat`) with navigation header launcher modal.
+- [x] **Agent 3 (Recipient Assistant):** Context-aware recipient recommendations for document owners (`POST /api/documents/:id/ai-suggest`).
 - [x] Prompt Injection Defense: Control characters and markdown delimiters sanitized (`aiService.sanitizeInput()`); untrusted user inputs limited to 150 chars.
 - [x] Output candidate validation: Server strictly filters suggestions against active database user UUIDs.
-- [x] Human-in-the-Loop decision tracking: Suggestions carry `suggestionBatchId`, and owner grant actions record `suggestionId` and `aiDecision: 'accepted'` into the audit chain.
+- [x] Human-in-the-Loop decision tracking: Suggestions carry `suggestionBatchId`, and owner grant actions record `suggestionId` and `aiDecision: 'accepted'` into the immutable hash chain.
 
 ### Phase 6: Frontend Refactor & Mobile-First Responsive Design
 - [x] Cleaned up CSS (`client/src/index.css`) with standard design tokens and Tailwind v4.

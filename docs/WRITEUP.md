@@ -26,9 +26,9 @@ Argus is an enterprise-grade secure document platform built for zero-trust envir
    - Every event (allowed and denied) forms a sequential cryptographic hash chain. Each row computes `SHA256(sequence_id | timestamp | actor_id | action | outcome | reason | doc_id | target_id | metadata | prev_hash)`.
    - Modifying or deleting any historical record breaks the chain from that row forward.
    - Enforced by PostgreSQL trigger `trg_protect_audit_log` which raises an uncatchable exception on `UPDATE`, `DELETE`, or `TRUNCATE`.
-6. **Gemini AI Access Assistant (Human-in-the-Loop):**
-   - Integrates Google Gemini 1.5 Flash to recommend recipients based on document categories and roles.
-   - Defended against prompt injection (`THR-16`) via metadata sanitization and server-side candidate allowlist validation.
+6. **Gemini 3.5 Flash-Lite AI Multi-Agent Ecosystem:**
+   - Integrates Google Gemini 3.5 Flash-Lite across three specialized security agents: (1) Autonomous Security Audit Threat Inspector for real-time reconnaissance scanning detection; (2) Zero-Trust Security Copilot agent for technical policy inquiries; and (3) Human-in-the-Loop Recipient Grant Assistant.
+   - Defended against prompt injection (`THR-16`) via strict metadata sanitization and server-side candidate allowlist validation.
    - The machine is strictly advisory; a human owner must confirm every grant, and both suggestion and decision are committed to the audit chain.
 
 ---

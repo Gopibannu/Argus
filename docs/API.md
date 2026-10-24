@@ -184,15 +184,28 @@
 
 ---
 
-### 5. Gemini AI Access Assistant
+### 5. Gemini 3.5 Flash-Lite AI Multi-Agent System
 
 #### `POST /api/documents/:id/ai-suggest`
-- **Description:** Generate advisory recipient recommendations using Google Gemini 1.5 Flash.
+- **Description:** Generate advisory recipient recommendations using Google Gemini 3.5 Flash-Lite.
 - **Allowed Callers:** Document owner ONLY. Requires `X-CSRF-Token`.
 - **Rules:** Output is purely advisory. The machine never grants permissions. Both suggestion and owner decision are logged to audit trail.
 - **Responses:**
-  - `200 OK`: `{"suggestions": [...], "model": "Google Gemini 1.5 Flash", "disclaimer": "..."}`
+  - `200 OK`: `{"suggestions": [...], "model": "Google Gemini 3.5 Flash-Lite", "disclaimer": "..."}`
   - `404 Not Found`: Non-owners blocked.
+
+#### `POST /api/ai/audit-analysis`
+- **Description:** Invokes the Autonomous Security Audit Threat Inspector agent to analyze real-time audit logs for anomalies, 404 reconnaissance patterns, and replay attacks.
+- **Allowed Callers:** Authenticated users (`role === 'admin'`).
+- **Responses:**
+  - `200 OK`: `{"riskLevel": "LOW"|"ELEVATED"|"CRITICAL", "summary": "...", "anomalies": [...], "recommendations": [...], "modelUsed": "Google Gemini 3.5 Flash-Lite (Autonomous Agent)"}`
+
+#### `POST /api/ai/copilot-chat`
+- **Description:** Converses with the Argus Zero-Trust Security Copilot Agent regarding system architecture, cryptographic guarantees, and RBAC policies.
+- **Allowed Callers:** Authenticated users.
+- **Body:** `{"query": "string"}`
+- **Responses:**
+  - `200 OK`: `{"reply": "...", "modelUsed": "Google Gemini 3.5 Flash-Lite (Copilot Agent)"}`
 
 ---
 

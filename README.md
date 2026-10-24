@@ -42,12 +42,13 @@ Argus is designed with rich aesthetics and responsive layouts for desktop, table
 
 ---
 
-## 🤖 AI Access Assistant (Google Gemini 2.0 Flash)
+## 🤖 AI Multi-Agent System (Google Gemini 3.5 Flash-Lite)
 
-- **Human-in-the-Loop Recommendations**: Suggests appropriate role and department recipients based on document metadata (e.g., category, department sensitivity).
-- **Security Protections**: Strict prompt compartmentalization, control delimiter stripping, and server-side candidate filtering against known users.
-- **Audit Chain Decision Tracking**: Suggestions generate unique batch IDs and are linked directly into the cryptographic audit trail upon human approval (`aiDecision: 'accepted'`).
-- **Fail-Safe Fallback**: Automatic deterministic heuristic fallback when external AI APIs are offline or unconfigured.
+Argus embeds an enterprise multi-agent suite powered by **Google Gemini 3.5 Flash-Lite**:
+- **Agent 1: Autonomous Security Audit Threat Inspector**: Runs real-time autonomous threat analysis on the live PostgreSQL audit stream in the Admin Security Center, detecting potential reconnaissance scans (repeated 404 IDOR probes), rapid privilege mutations, and replay attacks.
+- **Agent 2: Interactive Zero-Trust Security Copilot**: Accessible directly from the top navigation bar (`AI Copilot 3.5`), providing instant, technical architectural guidance on cryptographic envelope encryption, hash chain proofs, and security invariants.
+- **Agent 3: Advisory Recipient Grant Assistant (Human-in-the-Loop)**: Suggests appropriate role and department recipients based on sanitized document metadata. Machine can never widen access autonomously; owner confirmation writes the recommendation and decision into the immutable audit trail.
+- **Security Protections**: Strict prompt injection sanitization (`THR-16`), zero plaintext or key sharing, candidate UUID validation against active database users, and automatic deterministic heuristic fallback.
 
 ---
 

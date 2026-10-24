@@ -49,16 +49,22 @@
 
 ---
 
-### [02:30 - 03:30] Act 4: Gemini AI Recommendations & Instant Revocation
+### [02:30 - 03:30] Act 4: Gemini 3.5 Flash-Lite AI Multi-Agent & Instant Revocation
 - **Narrative:**
-  > *"Let's log back in as Bob. Bob wants to share the document with Dave, but wants assistance deciding on appropriate permissions."*
+  > *"Let's test our AI agents. First, we launch the Zero-Trust Copilot Agent from the navbar to verify our cryptographic parameters. Then Bob asks the Recipient Assistant for access suggestions."*
 - **Action:**
-  - Log back in as **Bob Owner**.
+  - Click **AI Copilot 3.5** in the top navigation bar:
+    - Ask: *"How does Anti-IDOR prevent data leaks?"*
+    - Copilot responds concisely with our uniform 404 guarantee.
+  - Log in as **Bob Owner** (`owner1@argus.local`).
   - Click **Grants** on `Project Titan Q3 Architecture`.
-  - Click **Suggest Recipients (AI)**:
-    - Gemini 1.5 Flash evaluates metadata and recommends Dave Viewer (`Compliance`) with `read` permission.
-    - Narrative: *"The machine is advisory only. It cannot widen access on its own. Bob clicks 'Apply to Form' and manually confirms 'Grant Access'."*
+  - Click **Suggest Recipients**:
+    - Gemini 3.5 Flash-Lite evaluates metadata and recommends Dave Viewer (`Compliance`) with `read` permission.
+    - Narrative: *"The machine is advisory only. It cannot widen access on its own. Bob clicks 'Fill Form' and manually confirms 'Grant Access'."*
   - Click **Grant Access**.
+  - Open Admin Security Center as **Alice Admin**:
+    - Click **Run Autonomous Threat Scan**:
+    - The Autonomous Audit Threat Inspector Agent analyzes recent events and reports real-time threat telemetry (`LOW` risk level, 0 anomalous spikes).
   - Log in as **Dave Viewer**:
     - Bob's document is now visible in Dave's search table.
     - Dave clicks **60s Ticket** to generate a single-use download URL.

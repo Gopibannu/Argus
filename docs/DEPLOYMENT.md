@@ -27,27 +27,21 @@ When deploying to production, ensure these three non-negotiables are configured:
 
 ---
 
-## 2. Deploy Option A: Render (Recommended — 1-Click / Free Tier)
+## 2. Deploy Option A: Render (Live Production Deployment)
 
-Render automatically detects [`render.yaml`](file:///d:/argus/render.yaml) from your GitHub repository.
+- **Live Service URL:** [https://argus-security-platform-a05q.onrender.com](https://argus-security-platform-a05q.onrender.com)
+- Continuous deployment triggers automatically from the `main` branch.
 
-### Steps:
-1. Push the repository to GitHub:
-   ```bash
-   git add .
-   git commit -m "feat(deploy): add production Dockerfile, render.yaml, and deployment configs"
-   git push origin main
-   ```
-2. Go to [Render Dashboard](https://dashboard.render.com).
-3. Click **New +** -> **Blueprint**.
-4. Connect the repository `https://github.com/Gopibannu/Argus.git`.
-5. Fill in the required environment variables:
-   - `DATABASE_URL`: Your PostgreSQL connection string.
-   - `MASTER_ENCRYPTION_KEY`: 64-character hex key generated above.
-   - `SUPABASE_URL`: Your Supabase project URL.
-   - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key.
-   - `GEMINI_API_KEY`: Google Gemini API key (for AI suggestions).
-6. Click **Apply Blueprint**. Render will build the Vite frontend, bundle it into the Express server, and serve the application with TLS.
+### Environment Configuration in Render:
+- `DATABASE_URL`: `postgresql://postgres.myealeoiysmniovkizzf:bannu%40G1234123@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres` (Using Supabase IPv4 connection pooler on port 6543 to avoid IPv6 `ENETUNREACH` errors).
+- `MASTER_ENCRYPTION_KEY`: 64-character hex key for AES-256-GCM envelope encryption.
+- `SESSION_SECRET`: Salt for session token hashing.
+- `SUPABASE_URL`: `https://myealeoiysmniovkizzf.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase server-side service role key.
+- `SUPABASE_STORAGE_BUCKET`: `documents`
+- `GEMINI_API_KEY`: Google Gemini API key (powers Gemini 3.5 Flash-Lite multi-agent ecosystem).
+- `NODE_ENV`: `production`
+- `PORT`: `5000`
 
 ---
 
