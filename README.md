@@ -8,7 +8,7 @@
 
 ## 🌐 Live Deployment & Credentials
 
-- **Live Application URL:** **[https://argus-security-platform.onrender.com](https://argus-security-platform-a05q.onrender.com/)** *(Render Web Service)*
+- **Live Application URL:** **[https://argus-security-platform-a05q.onrender.com](https://argus-security-platform-a05q.onrender.com)** *(Render Web Service)*
 - **Demo Accounts Password:** **`Password@Argus2026!`** *(All pre-seeded accounts have 1-click auto-fill buttons in the web modal)*
 - **Database Engine:** Hybrid Resilient PostgreSQL. Connected to live Supabase / Render PostgreSQL with automated fallback to an in-memory secure vault to ensure zero disruption during database cold starts or maintenance.
 
@@ -124,6 +124,7 @@ Argus is production-ready for deployment on Render, Railway, or standard Node.js
 
 ## 📚 Deliverables & Documentation Index
 
+- [documentation.md](documentation.md): **Zero-to-Hero Project Documentation** — Complete technical overview, architecture diagram, security invariants, multi-agent AI suite, and operational instructions.
 - [docs/WRITEUP.md](docs/WRITEUP.md): Full system architecture write-up, trade-offs, and design rationale.
 - [docs/API.md](docs/API.md): Complete REST API specification with permission requirements.
 - [docs/DEMO.md](docs/DEMO.md): 5-minute timed judge demonstration script.
