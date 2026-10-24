@@ -10,7 +10,8 @@ export default function Navbar({
   activeTab, 
   setActiveTab, 
   onLogout,
-  onOpenAuthModal
+  onOpenAuthModal,
+  onOpenCopilot
 }) {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#060913]/90 border-b border-white/[0.08] transition-all">
@@ -90,6 +91,20 @@ export default function Navbar({
 
         {/* Right: Live Database Node Health & User Profile */}
         <div className="flex items-center gap-3">
+          {/* AI Security Copilot Agent Launcher */}
+          {currentUser && (
+            <button
+              type="button"
+              onClick={onOpenCopilot}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 to-indigo-500/20 hover:from-sky-500/30 hover:to-indigo-500/30 border border-sky-500/30 text-sky-300 text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              title="Launch Zero-Trust Security Copilot Agent"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden sm:inline">AI Copilot</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/30 font-mono text-white">3.5</span>
+            </button>
+          )}
+
           {/* Live Node Pill */}
           {health && (
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-white/10 text-xs font-mono text-slate-300">

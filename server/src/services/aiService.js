@@ -76,8 +76,8 @@ export const aiService = {
         let suggestions = [];
         let modelUsed = 'Argus Security Heuristics (Deterministic Fallback)';
 
-        // 3. If GEMINI_API_KEY is configured, invoke Gemini API
-        if (config.geminiApiKey) {
+        // 3. If GEMINI_API_KEY is configured and not running in automated unit test mode, invoke Gemini API
+        if (config.geminiApiKey && !config.isTest) {
             try {
                 const systemPrompt = `You are the Argus Security Access Assistant. Recommend at most 3 users from the provided CANDIDATES list who should legitimately receive read or edit access to the document based strictly on their department and role.
 STRICT SECURITY INVARIANTS:
@@ -97,23 +97,46 @@ Owner Department: "${requestingUser.department || 'General'}"
 CANDIDATES:
 ${candidateSummary}`;
 
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${config.geminiApiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [
-                            { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
-                        ],
-                        generationConfig: {
-                            temperature: 0.1,
-                            responseMimeType: 'application/json'
-                        }
-                    })
-                });
+                // 1. Invoke Gemini 3.5 Flash-Lite (with gemini-3.8-flash fallback)
+                const candidateModels = [
+                    'gemini-3.5-flash-lite',
+                    'gemini-3.8-flash'
+                ];
 
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                let successfulResponse = null;
+                let activeModelName = 'Google Gemini 3.5 Flash-Lite';
+
+                for (const modelId of candidateModels) {
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${config.geminiApiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: AbortSignal.timeout(3500),
+                            body: JSON.stringify({
+                                contents: [
+                                    { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+                                ],
+                                generationConfig: {
+                                    temperature: 0.1,
+                                    responseMimeType: 'application/json'
+                                }
+                            })
+                        });
+
+                        if (response.ok) {
+                            successfulResponse = await response.json();
+                            activeModelName = modelId.includes('3.5') 
+                                ? 'Google Gemini 3.5 Flash-Lite'
+                                : 'Google Gemini 3.8 Flash';
+                            break;
+                        }
+                    } catch (_) {
+                        // try next candidate
+                    }
+                }
+
+                if (successfulResponse) {
+                    const text = successfulResponse.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (text) {
                         const parsed = JSON.parse(text);
                         if (Array.isArray(parsed)) {
@@ -134,7 +157,7 @@ ${candidateSummary}`;
                                 })
                                 .slice(0, 3);
 
-                            modelUsed = 'Google Gemini 2.0 Flash';
+                            modelUsed = activeModelName;
                         }
                     }
                 }
@@ -203,6 +226,183 @@ ${candidateSummary}`;
             suggestions: suggestions.map(s => ({ ...s, suggestionId: suggestionBatchId })),
             model: modelUsed,
             disclaimer: 'Advisory suggestions only. The system never grants access automatically. A human document owner must explicitly confirm any permission grant.'
+        };
+    },
+
+    /**
+     * AGENT 1: ARGUS AI SECURITY AUDIT AGENT (Autonomous Threat & Anomaly Inspector)
+     * Analyzes recent audit logs in real-time, identifies suspicious patterns, and returns actionable security telemetry.
+     */
+    async analyzeAuditThreats(recentLogs = [], requestingUser) {
+        let analysis = {
+            riskLevel: 'LOW',
+            summary: 'Audit log integrity verified. No immediate threat vectors detected.',
+            anomalies: [],
+            recommendations: [
+                'Continue monitoring periodic access patterns.',
+                'Ensure all sensitive documents have scoped expirations.'
+            ],
+            modelUsed: 'Argus Deterministic Security Rules'
+        };
+
+        if (recentLogs.length === 0) {
+            return analysis;
+        }
+
+        // Prepare compact sanitized log summary for the agent (zero sensitive keys/payloads)
+        const logDigest = recentLogs.slice(0, 25).map(l => ({
+            seq: l.sequenceId || l.sequence_id,
+            action: l.action,
+            outcome: l.outcome,
+            actor: l.actor?.name || l.actor_name || 'System',
+            ip: l.actor?.ip || l.actor_ip || '127.0.0.1',
+            reason: l.reason || 'N/A'
+        }));
+
+        if (config.geminiApiKey) {
+            try {
+                const systemPrompt = `You are the Argus Autonomous Security Audit Agent. 
+You specialize in detecting zero-trust document security threats:
+- Repeated 404 access attempts (potential IDOR attacks or brute-force scanning)
+- Multiple permission grants or sudden revocations
+- Stale or replay ticket redemptions
+- Administrative privilege misuse
+
+STRICT RESPONSE FORMAT:
+Respond ONLY with a valid JSON object matching:
+{
+  "riskLevel": "LOW" | "ELEVATED" | "CRITICAL",
+  "summary": "1-2 sentence executive threat summary",
+  "anomalies": ["threat or notable anomaly 1", "threat or notable anomaly 2"],
+  "recommendations": ["actionable mitigation step 1", "actionable mitigation step 2"]
+}`;
+
+                const userPrompt = `ANALYZE RECENT AUDIT LOG EVENTS:
+${JSON.stringify(logDigest, null, 2)}`;
+
+                const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+                for (const m of models) {
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${config.geminiApiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [
+                                    { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+                                ],
+                                generationConfig: {
+                                    temperature: 0.1,
+                                    responseMimeType: 'application/json'
+                                }
+                            })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (text) {
+                                const parsed = JSON.parse(text);
+                                analysis = {
+                                    riskLevel: ['LOW', 'ELEVATED', 'CRITICAL'].includes(parsed.riskLevel) ? parsed.riskLevel : 'LOW',
+                                    summary: parsed.summary || 'Audit evaluation complete.',
+                                    anomalies: Array.isArray(parsed.anomalies) ? parsed.anomalies : [],
+                                    recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+                                    modelUsed: `Google Gemini 3.5 Flash-Lite (Autonomous Agent)`
+                                };
+                                break;
+                            }
+                        }
+                    } catch (_) {}
+                }
+            } catch (err) {
+                console.warn('⚠️ [AI Service] Audit Threat Agent error, using heuristic analysis:', err.message);
+            }
+        }
+
+        // Heuristic fallback if API uncalled or failed
+        if (analysis.modelUsed === 'Argus Deterministic Security Rules') {
+            const deniedCount = recentLogs.filter(l => l.outcome === 'denied').length;
+            if (deniedCount >= 3) {
+                analysis.riskLevel = 'ELEVATED';
+                analysis.summary = `Detected ${deniedCount} denied requests in recent history. Possible unauthorized document enumeration attempt blocked by Anti-IDOR.`;
+                analysis.anomalies.push(`Multiple denied events recorded (${deniedCount} denials).`);
+                analysis.recommendations.push('Review IP addresses involved in denied events in the Audit Stream.');
+            }
+        }
+
+        return analysis;
+    },
+
+    /**
+     * AGENT 2: ARGUS ZERO-TRUST COPILOT (Interactive Security Chat Agent)
+     * Answers queries regarding system architecture, cryptographic guarantees, permissions, and threat vectors.
+     */
+    async chatSecurityCopilot(userQuery, user) {
+        const cleanQuery = this.sanitizeInput(userQuery);
+        if (!cleanQuery) {
+            return {
+                reply: 'Please provide a valid question regarding document security or zero-trust architecture.',
+                modelUsed: 'none'
+            };
+        }
+
+        let reply = '';
+        let modelUsed = 'Argus Security Assistant (Rules-based)';
+
+        if (config.geminiApiKey) {
+            try {
+                const systemPrompt = `You are the Argus Zero-Trust Security Copilot. 
+You are an expert on the Argus Platform built with:
+- Envelope Encryption with AES-256-GCM (per-file Data Encryption Keys wrapped by Master Key)
+- Anti-IDOR Single Authorization Choke Point: Uniform 404 on ungranted requests
+- Mathematical Hash Chain Audit Trail: SHA-256 chained, immutable PostgreSQL triggers rejecting UPDATE/DELETE/TRUNCATE
+- Dynamic Versioned Grants: Document grant_version increments invalidate 60s single-use download tickets
+- Role-Based Access Control: Alice (Admin, least-privilege), Bob/Carol (Owners), Dave/Eve (Viewers)
+
+Tone: Highly knowledgeable, concise, security-first enterprise engineer.
+User Role: ${user?.role || 'user'}, Name: ${user?.fullName || 'User'}.
+STRICT: Keep your response direct, clear, professional, and max 150-200 words.`;
+
+                const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+                for (const m of models) {
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${config.geminiApiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [
+                                    { role: 'user', parts: [{ text: `${systemPrompt}\n\nQuestion: "${cleanQuery}"` }] }
+                                ],
+                                generationConfig: {
+                                    temperature: 0.2,
+                                    maxOutputTokens: 300
+                                }
+                            })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (text) {
+                                reply = text.trim();
+                                modelUsed = 'Google Gemini 3.5 Flash-Lite (Copilot Agent)';
+                                break;
+                            }
+                        }
+                    } catch (_) {}
+                }
+            } catch (err) {
+                console.warn('⚠️ [AI Service] Copilot chat error:', err.message);
+            }
+        }
+
+        if (!reply) {
+            reply = `Argus employs a Zero-Trust single choke point architecture. Every document is protected by an independent AES-256-GCM key and an append-only SHA-256 hash chain anchored by database triggers. Any ungranted access yields a strict 404 response to eliminate IDOR vulnerabilities.`;
+        }
+
+        return {
+            reply,
+            modelUsed
         };
     }
 };

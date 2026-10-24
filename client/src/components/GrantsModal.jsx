@@ -51,7 +51,7 @@ export default function GrantsModal({
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
               <Bot className="w-4 h-4 text-purple-400" />
-              <span>AI Access Assistant (Google Gemini Flash-Lite)</span>
+              <span>AI Access Assistant (Google Gemini 3.5 Flash-Lite)</span>
             </div>
             <button
               type="button"

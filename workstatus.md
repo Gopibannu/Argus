@@ -25,7 +25,7 @@ Argus guarantees two fundamental enterprise security invariants:
 | **Object Storage** | Private Supabase Storage & Vault Store | `documents` bucket. Raw files never stored in plaintext; only client-encrypted ciphertext stored. |
 | **Backend API** | Node.js / Express (ES Modules) | Stateful PostgreSQL sessions (`sessions` table), HMAC CSRF tokens (`X-CSRF-Token`), Helmet headers, Trust proxy enabled, Rate limiting (auth & OTP), Magic bytes validation (`file-type`). |
 | **Cryptography** | Node.js `crypto` | Envelope encryption with AES-256-GCM (unique per-file Data Encryption Key DEK), Master Key KEK, Hash chain via SHA-256 with deterministic canonical JSON key sorting. |
-| **AI Assistant** | Google Gemini 2.0 Flash | Context-aware document recipient suggestions with prompt sanitization, output candidate filtering, and human-in-the-loop audit decision linking (`suggestionId`). Fallback to deterministic heuristics included. |
+| **AI Assistant** | Google Gemini 3.5 Flash-Lite | Context-aware document recipient suggestions with prompt sanitization, output candidate filtering, and human-in-the-loop audit decision linking (`suggestionId`). Fallback to deterministic heuristics included. |
 | **Frontend** | React 19 + Vite 6 + TailwindCSS v4 | Modular component architecture, sticky enterprise Navbar, interactive pop-up authentication modal with OTP support, mobile-first responsive design. |
 | **Email Service** | Nodemailer | Real SMTP dispatch with automatic console fallback for offline/demo operation. |
 

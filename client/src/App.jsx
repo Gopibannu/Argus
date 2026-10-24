@@ -8,6 +8,7 @@ import AdminSecurityCenter from './components/AdminSecurityCenter';
 import ThreatDefenseView from './components/ThreatDefenseView';
 import GrantsModal from './components/GrantsModal';
 import EditDocumentModal from './components/EditDocumentModal';
+import SecurityCopilotModal from './components/SecurityCopilotModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -18,6 +19,9 @@ export default function App() {
   const [successMsg, setSuccessMsg] = useState('');
   const [health, setHealth] = useState(null);
   const [editingDoc, setEditingDoc] = useState(null);
+
+  // AI Security Copilot State
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -65,6 +69,10 @@ export default function App() {
   const [auditActionFilter, setAuditActionFilter] = useState('');
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdminData, setLoadingAdminData] = useState(false);
+
+  // AI Autonomous Audit Agent State
+  const [aiAuditAnalysis, setAiAuditAnalysis] = useState(null);
+  const [analyzingAi, setAnalyzingAi] = useState(false);
 
   useEffect(() => {
     fetchSession();
@@ -170,6 +178,26 @@ export default function App() {
       setAuditChainStatus({ valid: false, error: err.message });
     } finally {
       setVerifyingChain(false);
+    }
+  }
+
+  async function handleRunAiAuditAnalysis() {
+    setAnalyzingAi(true);
+    try {
+      const res = await fetch('/api/ai/audit-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to run AI audit analysis.');
+      setAiAuditAnalysis(data);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setAnalyzingAi(false);
     }
   }
 
@@ -558,6 +586,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
         onOpenAuthModal={openAuthModal}
+        onOpenCopilot={() => setIsCopilotOpen(true)}
       />
 
       {/* 2. Main Container */}
@@ -641,9 +670,12 @@ export default function App() {
                 setAuditActionFilter={setAuditActionFilter}
                 adminUsers={adminUsers}
                 loadingAdminData={loadingAdminData}
+                aiAuditAnalysis={aiAuditAnalysis}
+                analyzingAi={analyzingAi}
                 onVerifyChain={handleVerifyChain}
                 onToggleUserStatus={toggleUserStatus}
                 onRefreshData={fetchAdminDashboardData}
+                onRunAiAuditAnalysis={handleRunAiAuditAnalysis}
               />
             )}
 
@@ -654,6 +686,14 @@ export default function App() {
         )}
 
       </main>
+
+      {/* AI Security Copilot Modal (Zero-Trust Agent) */}
+      <SecurityCopilotModal
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        currentUser={currentUser}
+        csrfToken={csrfToken}
+      />
 
       {/* Interactive Pop-Up Auth Modal (Sign In / Register / OTP) */}
       <AuthModal

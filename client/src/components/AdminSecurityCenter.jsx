@@ -16,9 +16,12 @@ export default function AdminSecurityCenter({
   setAuditActionFilter,
   adminUsers,
   loadingAdminData,
+  aiAuditAnalysis,
+  analyzingAi,
   onVerifyChain,
   onToggleUserStatus,
-  onRefreshData
+  onRefreshData,
+  onRunAiAuditAnalysis
 }) {
   return (
     <div className="space-y-8">
@@ -121,6 +124,79 @@ export default function AdminSecurityCenter({
             {auditChainStatus.headHash && (
               <div className="text-[11px] text-slate-400 truncate mt-1">
                 Head Hash: <span className="text-white font-mono">{auditChainStatus.headHash}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* AI Autonomous Security Audit Inspector Card */}
+      <div className="glass-panel p-6 sm:p-8 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/30 via-slate-900/60 to-[#060913] rounded-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-4">
+          <div>
+            <div className="flex items-center gap-2 text-indigo-400 font-bold mb-1.5">
+              <span className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-xs">
+                AI AGENT
+              </span>
+              <h3 className="text-lg text-white font-bold">Autonomous Threat & Anomaly Inspector</h3>
+            </div>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              Powered by <strong>Google Gemini 3.5 Flash-Lite</strong>. Evaluates real-time audit event patterns, detects repeated 404 access scans (potential IDOR attempts), and produces prioritized security telemetry.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onRunAiAuditAnalysis}
+            disabled={analyzingAi}
+            className="btn-primary !bg-gradient-to-r !from-indigo-600 !to-purple-600 shadow-indigo-900/40 shrink-0"
+          >
+            <RefreshCw className={`w-4 h-4 ${analyzingAi ? 'animate-spin' : ''}`} />
+            <span>{analyzingAi ? 'Agent Inspecting Stream...' : 'Run Autonomous Threat Scan'}</span>
+          </button>
+        </div>
+
+        {aiAuditAnalysis && (
+          <div className="mt-4 p-4 rounded-xl bg-black/40 border border-white/10 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 font-semibold">Threat Level:</span>
+                <span className={`px-2.5 py-0.5 rounded-full font-mono font-bold text-[11px] ${
+                  aiAuditAnalysis.riskLevel === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
+                  aiAuditAnalysis.riskLevel === 'ELEVATED' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                  'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                }`}>
+                  {aiAuditAnalysis.riskLevel}
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-purple-300">
+                {aiAuditAnalysis.modelUsed}
+              </span>
+            </div>
+
+            <p className="text-slate-200 font-medium leading-relaxed">
+              {aiAuditAnalysis.summary}
+            </p>
+
+            {aiAuditAnalysis.anomalies?.length > 0 && (
+              <div className="pt-2 border-t border-white/5">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">Detected Threat Signals:</div>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  {aiAuditAnalysis.anomalies.map((a, i) => (
+                    <li key={i}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {aiAuditAnalysis.recommendations?.length > 0 && (
+              <div className="pt-2 border-t border-white/5">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-sky-400 mb-1">Agent Action Recommendations:</div>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  {aiAuditAnalysis.recommendations.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
